@@ -88,6 +88,23 @@
   button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,a:focus-visible{
     outline:3px solid var(--navy);outline-offset:2px}
   .hide{display:none!important}
+  /* 物件一覧 */
+  .search{width:100%;font:inherit;font-size:19px;padding:13px 14px;border:2px solid var(--line);border-radius:12px;background:#fff;margin:4px 0 10px}
+  .kinds{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+  .kinds button{font:inherit;font-size:17px;font-weight:700;padding:8px 16px;border-radius:999px;border:2px solid var(--line);background:#fff;color:var(--ink);cursor:pointer}
+  .kinds button[aria-pressed="true"]{background:var(--navy);border-color:var(--navy);color:#fff}
+  .count{color:var(--sub);font-size:16px;margin:0 0 10px}
+  .item{display:block;width:100%;text-align:left;background:var(--paper);border:2px solid var(--line);border-radius:12px;padding:14px 16px;margin:0 0 10px;font:inherit;color:inherit;cursor:pointer}
+  .item:hover{border-color:var(--orange)}
+  .item .row1{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .ktag{display:inline-block;font-size:15px;font-weight:700;padding:2px 10px;border-radius:6px;color:#fff}
+  .ktag.k-マンション{background:#1F3A68} .ktag.k-戸建{background:#1F7A4A} .ktag.k-土地{background:#8A5A1E} .ktag.k-その他{background:#55607A}
+  .item .nm{display:block;font-size:21px;font-weight:900;color:var(--navy-ink);margin-top:4px;line-height:1.4}
+  .item .ar{display:block;font-size:16px;color:var(--sub)}
+  .item .pr{font-size:22px;font-weight:900;color:var(--orange-deep)}
+  .item .pr small{font-size:15px;color:var(--ink);font-weight:700}
+  .item .st{font-size:15px;font-weight:700;padding:2px 10px;border-radius:999px}
+  .item .st.open{background:var(--ok-soft);color:var(--ok)} .item .st.second{background:var(--orange-soft);color:var(--orange-deep)}
   .loading{padding:40px 0;text-align:center;color:var(--sub)}
   footer{max-width:600px;margin:0 auto;padding:0 16px 32px;color:var(--sub);font-size:15px}
   @media (max-width:380px){ .days{grid-template-columns:repeat(2,1fr)} .plate h1{font-size:24px} }
@@ -99,11 +116,27 @@
   <div id="loading" class="loading">物件の情報を読み込んでいます…</div>
   <div id="fatal" class="err hide"></div>
 
+  <a id="to-list" class="back hide" href="./" style="display:inline-block;text-decoration:none">← 物件一覧へ</a>
   <section id="plate" class="plate hide" aria-live="polite">
     <div class="kind" id="p-kind"></div>
     <h1 id="p-name"></h1>
     <p class="addr" id="p-addr"></p>
     <span class="chip" id="p-chip"></span>
+  </section>
+
+  <!-- 0. 物件一覧（物件を指定しないで開いたとき） -->
+  <section id="s-list" class="hide">
+    <h2>ご予約・物件確認をする物件を選んでください</h2>
+    <input type="search" class="search" id="list-q" placeholder="物件名・地名で検索（例：五福、城南）" aria-label="物件を検索">
+    <div class="kinds" id="list-kinds">
+      <button type="button" data-k="" aria-pressed="true">すべて</button>
+      <button type="button" data-k="マンション" aria-pressed="false">マンション</button>
+      <button type="button" data-k="戸建" aria-pressed="false">戸建</button>
+      <button type="button" data-k="土地" aria-pressed="false">土地</button>
+      <button type="button" data-k="その他" aria-pressed="false">その他</button>
+    </div>
+    <p class="count" id="list-count"></p>
+    <div id="list-items"></div>
   </section>
 
   <!-- 1. 利用者の選択 -->
@@ -224,7 +257,7 @@
 
 <script>
 /* ▼ GASを公開したときに表示されるURLに書き換えてください */
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbyj1rgagQQujF9FR4R9AWRYc5JATehBsdq3Wls2cz9Lb3CB3eqXBeuzZjGp6986ASS4/exec';
+const GAS_URL = 'const GAS_URL = 'https://script.google.com/macros/s/AKfycbyj1rgagQQujF9FR4R9AWRYc5JATehBsdq3Wls2cz9Lb3CB3eqXBeuzZjGp6986ASS4/exec';';
 
 const TYPE = {
   bukkaku:  { title:'物件確認（物確）', desc:'募集状況をその場でお知らせします' },
@@ -240,7 +273,7 @@ const $ = id => document.getElementById(id);
 const state = { id:'', info:null, who:'', type:'', date:'', slot:'', slotText:'', days:[] };
 
 function show(id){
-  ['s-who','s-menu','s-form','s-timerex','s-done'].forEach(s => $(s).classList.toggle('hide', s !== id));
+  ['s-list','s-who','s-menu','s-form','s-timerex','s-done'].forEach(s => $(s).classList.toggle('hide', s !== id));
   window.scrollTo({ top: 0 });
 }
 
@@ -268,7 +301,7 @@ function fatal(msg){
 /* ---------- 起動 ---------- */
 (async function init(){
   state.id = new URLSearchParams(location.search).get('id') || '';
-  if (!state.id) { fatal('物件が指定されていません。看板や資料のQRコードをもう一度読み取ってください。'); return; }
+  if (!state.id) { loadList(); return; }
   try {
     state.info = await api({ action:'property', id: state.id });
   } catch (e) { fatal(e.message); return; }
@@ -289,10 +322,55 @@ function fatal(msg){
 
   $('loading').classList.add('hide');
   $('plate').classList.remove('hide');
+  $('to-list').classList.remove('hide');
   $('who-agent').classList.toggle('hide', state.info.menus.agent.length === 0);
   $('who-customer').classList.toggle('hide', state.info.menus.customer.length === 0);
   show('s-who');
 })();
+
+/* ---------- 物件一覧 ---------- */
+const LIST = { all: [], kind: '' };
+async function loadList(){
+  try {
+    const data = await api({ action:'list' });
+    LIST.all = data.properties;
+  } catch (e) { fatal(e.message); return; }
+  $('loading').classList.add('hide');
+  document.title = '物件確認・ご案内のご予約｜ViVi不動産';
+  renderList();
+  show('s-list');
+}
+function renderList(){
+  const q = $('list-q').value.trim();
+  const box = $('list-items'); box.innerHTML = '';
+  const items = LIST.all.filter(p => (!LIST.kind || p.kind === LIST.kind) &&
+    (!q || (p.name + ' ' + p.area).indexOf(q) !== -1));
+  $('list-count').textContent = items.length + '件の物件';
+  items.forEach(p => {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'item';
+    const r1 = document.createElement('span'); r1.className = 'row1';
+    const tag = document.createElement('span'); tag.className = 'ktag k-' + p.kind; tag.textContent = p.kind;
+    r1.appendChild(tag);
+    if (p.price) { const pr = document.createElement('span'); pr.className = 'pr'; pr.innerHTML = '';
+      pr.append(p.price.toLocaleString('ja-JP')); const sm = document.createElement('small'); sm.textContent = '万円'; pr.appendChild(sm); r1.appendChild(pr); }
+    const st = document.createElement('span');
+    st.className = 'st ' + (p.secondary || !p.agent ? 'second' : 'open');
+    st.textContent = !p.agent ? '一般のお客様のみ' : (p.secondary ? '二番手でご案内可' : 'ご案内できます');
+    r1.appendChild(st);
+    const nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = p.name;
+    const ar = document.createElement('span'); ar.className = 'ar'; ar.textContent = p.area;
+    b.append(r1, nm, ar);
+    b.onclick = () => { location.href = location.pathname + '?id=' + encodeURIComponent(p.id); };
+    box.appendChild(b);
+  });
+  if (!items.length) box.innerHTML = '<p class="lead">条件に合う物件がありません。</p>';
+}
+$('list-q').addEventListener('input', renderList);
+document.querySelectorAll('#list-kinds button').forEach(b => b.onclick = () => {
+  LIST.kind = b.dataset.k;
+  document.querySelectorAll('#list-kinds button').forEach(x => x.setAttribute('aria-pressed', x === b ? 'true' : 'false'));
+  renderList();
+});
 
 /* ---------- 利用者 ---------- */
 $('who-agent').onclick = () => { state.who = 'agent'; buildMenu(); show('s-menu'); };
