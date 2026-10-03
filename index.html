@@ -333,8 +333,7 @@ function buildMenu(){
 function openType(t){
   state.type = t; state.date = ''; state.slot = ''; state.slotText = '';
   const p = state.info.property;
-  const isTr = t === 'attend' || t === 'viewing';
-  if (isTr && !(t === 'attend' ? state.info.timerex.agent : state.info.timerex.customer)) { openTimerex(t); return; }
+  const isCal = t === 'attend' || t === 'viewing';
 
   $('form-title').textContent = TYPE[t].title;
   $('form-err').classList.add('hide');
@@ -344,12 +343,13 @@ function openType(t){
   $('fs-customer').classList.toggle('hide', !(isCustomer && t !== 'bukkaku'));
   $('email-opt').textContent = isCustomer ? '確定のご連絡に使います' : '確定のご連絡に使います（ない場合はFAX番号を）';
 
-  const usesDay = t !== 'bukkaku' && !isTr;
+  const usesDay = t !== 'bukkaku';
   $('fs-day').classList.toggle('hide', !usesDay);
   $('fs-slot').classList.add('hide');
   $('fs-time').classList.add('hide');
   $('chosen').classList.add('hide');
-  $('fs-alt').classList.toggle('hide', !(t === 'land' || t === 'ground'));
+  $('fs-alt').classList.toggle('hide', !(t === 'land' || t === 'ground' ||
+    (isCal && (p.occupancy === '居住中' || p.otherCompany))));
   $('duration').classList.toggle('hide', t !== 'ground');
   $('duration-label').classList.toggle('hide', t !== 'ground');
 
@@ -364,9 +364,12 @@ function openType(t){
   } else if (t === 'key_box') {
     notice.textContent = 'キーボックスの暗証番号は、確定後に担当者からお電話でお伝えします。';
     notice.classList.remove('hide');
-  } else if (isTr) {
-    notice.innerHTML = 'ご連絡先を入力すると、次の画面で<strong>担当者の空いている日時</strong>を選べます。' +
-      ((p.occupancy === '居住中' || p.otherCompany) ? '<br>売主様に確認の上、担当者から確定のご連絡をいたします。' : '');
+  } else if (isCal) {
+    notice.innerHTML = (t === 'attend' ? '当社担当者が現地で立ち会います（約1時間）。' : '担当者がご案内します（約2時間）。') +
+      '担当者の空いている時間からお選びください。' +
+      ((p.occupancy === '居住中' || p.otherCompany)
+        ? '<br><strong>仮予約です。</strong>売主様に確認の上、担当者から確定のご連絡をいたします。'
+        : '担当者から確定のご連絡をいたします。');
     notice.classList.remove('hide');
   }
   const second = t !== 'bukkaku' && p.status[state.who].secondary;
@@ -377,8 +380,7 @@ function openType(t){
       (notice.classList.contains('hide') ? '' : '<br>' + notice.innerHTML);
     notice.classList.remove('hide');
   }
-  $('submit').textContent = t === 'bukkaku' ? '募集状況を確認する' : (isTr ? '次へ：空いている日時を選ぶ' : '仮予約を送信する');
-  $('email-opt').textContent = isTr ? '必須：次の画面でも同じアドレスを入力してください' : $('email-opt').textContent;
+  $('submit').textContent = t === 'bukkaku' ? '募集状況を確認する' : '仮予約を送信する';
   show('s-form');
   if (usesDay) loadDays();
 }
@@ -437,7 +439,7 @@ async function loadDays(){
 function pickDay(d, btn){
   state.date = d.date; state.slot = ''; state.slotText = '';
   document.querySelectorAll('#days .tile').forEach(x => x.setAttribute('aria-pressed', x === btn ? 'true' : 'false'));
-  if (state.type === 'key_store' || state.type === 'key_box') {
+  if (['key_store', 'key_box', 'attend', 'viewing'].indexOf(state.type) !== -1) {
     const box = $('slots'); box.innerHTML = '';
     d.slots.forEach(s => {
       const b = document.createElement('button');
@@ -497,9 +499,9 @@ $('form').addEventListener('submit', async ev => {
   $('form-err').classList.add('hide');
   const t = state.type, isCustomer = state.who === 'customer';
   const v = id => $(id).value.trim();
-  const isTr = t === 'attend' || t === 'viewing';
+  const slotted = ['key_store', 'key_box', 'attend', 'viewing'].indexOf(t) !== -1;
   const body = {
-    action: t === 'bukkaku' ? 'bukkaku' : (isTr ? 'pretimerex' : 'reserve'),
+    action: t === 'bukkaku' ? 'bukkaku' : 'reserve',
     propertyId: state.id, type: t, who: state.who,
     company: isCustomer ? '' : v('company'), name: v('name'), phone: v('phone'),
     email: v('email'), fax: isCustomer ? '' : v('fax'), note: v('note'),
@@ -516,10 +518,9 @@ $('form').addEventListener('submit', async ev => {
   if (!isCustomer && !body.company) return showErr('会社名を入力してください。');
   if (!body.name) return showErr('お名前を入力してください。');
   if (!body.phone) return showErr('電話番号を入力してください。');
-  if (isTr && !body.email) return showErr('メールアドレスを入力してください。予約の照合に使います。');
-  if (t !== 'bukkaku' && !isTr) {
+  if (t !== 'bukkaku') {
     if (!body.date) return showErr('日にちを選んでください。');
-    if ((t === 'key_store' || t === 'key_box') && !body.slot) return showErr('時間を選んでください。');
+    if (slotted && !body.slot) return showErr('時間を選んでください。');
     if ((t === 'land' || t === 'ground') && !body.time) return showErr('時刻を選んでください。');
     if (t === 'ground' && !body.duration) return showErr('所要時間を選んでください。');
     if (isCustomer && !body.email) return showErr('確定のご連絡のため、メールアドレスを入力してください。');
@@ -530,12 +531,10 @@ $('form').addEventListener('submit', async ev => {
   btn.disabled = true; btn.textContent = '送信しています…';
   try {
     const res = await post(body);
-    if (t === 'bukkaku') doneBukkaku(res, body);
-    else if (isTr) showTimerexStep(res.url, body.email);
-    else doneReserve(res, body);
+    if (t === 'bukkaku') doneBukkaku(res, body); else doneReserve(res, body);
   } catch (e) {
     showErr(e.message);
-    if (t === 'key_store' || t === 'key_box') loadDays();
+    if (slotted) loadDays();
   } finally {
     btn.disabled = false; btn.textContent = label;
   }
