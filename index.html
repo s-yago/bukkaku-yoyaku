@@ -113,7 +113,7 @@
 <body>
 <div class="bar">ViVi不動産 <span>物件確認・ご案内のご予約</span></div>
 <main>
-  <div id="loading" class="loading">物件の情報を読み込んでいます…</div>
+  <div id="loading" class="loading">物件の情報を読み込んでいます…<br><small>（10秒ほどかかることがあります）</small></div>
   <div id="fatal" class="err hide"></div>
 
   <a id="to-list" class="back hide" href="./" style="display:inline-block;text-decoration:none">← 物件一覧へ</a>
@@ -333,6 +333,7 @@ const LIST = { all: [], kind: '' };
 async function loadList(){
   try {
     const data = await api({ action:'list' });
+    if (!Array.isArray(data.properties)) throw new Error('物件の一覧を読み込めませんでした。少し時間をおいて開き直してください。');
     LIST.all = data.properties;
   } catch (e) { fatal(e.message); return; }
   $('loading').classList.add('hide');
