@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>物件確認・ご案内のご予約｜ViVi不動産</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#1F3A68; --navy-ink:#14284A; --orange:#E07B24; --orange-deep:#B8601A; --orange-soft:#FCEBDC;
+    --paper:#FFFFFF; --mist:#F1F4F9; --line:#C9D2E0; --ink:#1A2233; --sub:#55607A;
+    --ok:#1F7A4A; --ok-soft:#E3F3EA; --ng:#B3362B; --ng-soft:#F8E3E1;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{background:var(--mist);color:var(--ink);
+    font-family:"Zen Kaku Gothic New","Hiragino Kaku Gothic ProN","Hiragino Sans","Yu Gothic","Meiryo",sans-serif;
+    font-size:18px;line-height:1.75;-webkit-text-size-adjust:100%;
+    padding-bottom:env(safe-area-inset-bottom,0px)}
+  .bar{background:var(--navy);color:#fff;padding:calc(10px + env(safe-area-inset-top,0px)) 20px 10px;
+    font-weight:700;font-size:16px;letter-spacing:.04em}
+  .bar span{color:#F6B57A}
+  main{max-width:600px;margin:0 auto;padding:0 16px 56px}
+
+  /* 物件札：看板に貼られたQRの先にある「札」 */
+  .plate{background:var(--paper);margin:20px 0 24px;border-radius:4px 14px 14px 4px;
+    border-left:10px solid var(--orange);padding:18px 20px 16px;box-shadow:0 1px 0 var(--line)}
+  .plate .kind{font-size:15px;color:var(--sub);font-weight:500}
+  .plate h1{margin:2px 0 4px;font-size:28px;line-height:1.35;font-weight:900;color:var(--navy-ink);word-break:auto-phrase}
+  .plate .addr{margin:0;color:var(--sub);font-size:16px}
+  .chip{display:inline-block;margin-top:10px;padding:4px 14px;border-radius:999px;font-weight:700;font-size:16px}
+  .chip.open{background:var(--ok-soft);color:var(--ok)}
+  .chip.stop{background:var(--ng-soft);color:var(--ng)}
+
+  h2{font-size:22px;margin:8px 0 14px;color:var(--navy-ink);font-weight:700}
+  p.lead{margin:0 0 16px;color:var(--sub)}
+
+  .pick{display:block;width:100%;text-align:left;background:var(--paper);border:2px solid var(--line);
+    border-radius:12px;padding:16px 18px;margin:0 0 12px;font:inherit;color:inherit;cursor:pointer}
+  .pick strong{display:block;font-size:21px;color:var(--navy-ink)}
+  .pick small{display:block;font-size:16px;color:var(--sub);line-height:1.6;margin-top:2px}
+  .pick:hover{border-color:var(--orange)}
+  .pick.quiet{background:transparent;border-style:dashed}
+  .pick.quiet strong{font-size:18px}
+
+  .back{background:none;border:0;color:var(--navy);font:inherit;font-weight:700;padding:6px 0;margin:0 0 8px;cursor:pointer}
+
+  fieldset{border:0;margin:0 0 20px;padding:0}
+  legend{font-weight:700;font-size:19px;margin-bottom:10px;color:var(--navy-ink);padding:0}
+  .days{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .slots{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+  .tile{background:var(--paper);border:2px solid var(--line);border-radius:10px;padding:12px 6px;
+    font:inherit;font-weight:700;color:var(--ink);cursor:pointer;text-align:center;line-height:1.4}
+  .tile small{display:block;font-weight:500;font-size:15px;color:var(--sub)}
+  .tile[aria-pressed="true"]{border-color:var(--orange);background:var(--orange-soft)}
+  .tile:disabled{opacity:.4;cursor:not-allowed;text-decoration:line-through}
+  .chosen{margin:10px 0 24px;font-size:22px;font-weight:900;color:var(--orange-deep)}
+
+  label.f{display:block;font-weight:700;margin:14px 0 6px}
+  label.f .opt{font-weight:500;color:var(--sub);font-size:15px;margin-left:6px}
+  input[type=text],input[type=tel],input[type=email],select,textarea{width:100%;font:inherit;font-size:19px;
+    padding:12px 14px;border:2px solid var(--line);border-radius:10px;background:#fff;color:var(--ink)}
+  textarea{min-height:90px}
+  .radios label{display:block;background:var(--paper);border:2px solid var(--line);border-radius:10px;
+    padding:12px 14px;margin-bottom:8px;font-weight:500;cursor:pointer}
+  .radios input{width:22px;height:22px;vertical-align:-4px;margin-right:10px;accent-color:var(--orange)}
+  .radios label:has(input:checked){border-color:var(--orange);background:var(--orange-soft)}
+
+  .notice{background:var(--orange-soft);border-radius:10px;padding:14px 16px;margin:0 0 18px;font-weight:500}
+  .notice strong{color:var(--orange-deep)}
+
+  .go{display:block;width:100%;font:inherit;font-size:21px;font-weight:900;padding:18px;border:0;border-radius:14px;
+    background:var(--orange);color:#fff;cursor:pointer;margin-top:20px;text-align:center;text-decoration:none}
+  .go:disabled{opacity:.5}
+  .err{background:var(--ng-soft);color:var(--ng);font-weight:700;padding:14px 16px;border-radius:10px;margin:12px 0}
+
+  .result{background:var(--paper);border-radius:14px;padding:22px 20px;border-top:8px solid var(--navy)}
+  .result .big{font-size:26px;font-weight:900;color:var(--navy-ink);margin:0 0 8px;line-height:1.4}
+  .result dl{display:grid;grid-template-columns:6em 1fr;gap:4px 12px;margin:14px 0 0}
+  .result dt{color:var(--sub)} .result dd{margin:0;font-weight:700}
+
+  button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,a:focus-visible{
+    outline:3px solid var(--navy);outline-offset:2px}
+  .hide{display:none!important}
+  .loading{padding:40px 0;text-align:center;color:var(--sub)}
+  footer{max-width:600px;margin:0 auto;padding:0 16px 32px;color:var(--sub);font-size:15px}
+  @media (max-width:380px){ .days{grid-template-columns:repeat(2,1fr)} .plate h1{font-size:24px} }
+</style>
+</head>
+<body>
+<div class="bar">ViVi不動産 <span>物件確認・ご案内のご予約</span></div>
+<main>
+  <div id="loading" class="loading">物件の情報を読み込んでいます…</div>
+  <div id="fatal" class="err hide"></div>
+
+  <section id="plate" class="plate hide" aria-live="polite">
+    <div class="kind" id="p-kind"></div>
+    <h1 id="p-name"></h1>
+    <p class="addr" id="p-addr"></p>
+    <span class="chip" id="p-chip"></span>
+  </section>
+
+  <!-- 1. 利用者の選択 -->
+  <section id="s-who" class="hide">
+    <h2>ご利用になる方を選んでください</h2>
+    <button class="pick" id="who-agent" type="button">
+      <strong>不動産業者の方</strong>
+      <small>物件確認・鍵の貸出・ご案内のご予約</small>
+    </button>
+    <button class="pick" id="who-customer" type="button">
+      <strong>一般のお客様</strong>
+      <small>物件のご見学のご予約</small>
+    </button>
+    <button class="pick quiet" id="who-staff" type="button">
+      <strong>ViVi不動産のスタッフ</strong>
+      <small>会社のGoogleアカウントでログインします</small>
+    </button>
+  </section>
+
+  <!-- 2. 業者メニュー -->
+  <section id="s-menu" class="hide">
+    <button class="back" type="button" data-back="s-who">← 戻る</button>
+    <h2>ご用件を選んでください</h2>
+    <div id="menu-list"></div>
+  </section>
+
+  <!-- 3. 入力フォーム -->
+  <section id="s-form" class="hide">
+    <button class="back" type="button" id="form-back">← 戻る</button>
+    <h2 id="form-title"></h2>
+    <div id="form-notice" class="notice hide"></div>
+    <form id="form" novalidate>
+      <fieldset id="fs-day" class="hide">
+        <legend>日にち</legend>
+        <div class="days" id="days"></div>
+      </fieldset>
+      <fieldset id="fs-slot" class="hide">
+        <legend>時間</legend>
+        <div class="slots" id="slots"></div>
+      </fieldset>
+      <fieldset id="fs-time" class="hide">
+        <legend>時刻</legend>
+        <select id="time"></select>
+        <label class="f hide" for="duration" id="duration-label">所要時間</label>
+        <select id="duration" class="hide">
+          <option value="">選んでください</option>
+          <option>1時間</option>
+          <option>半日</option>
+          <option>終日</option>
+        </select>
+      </fieldset>
+      <p class="chosen hide" id="chosen"></p>
+
+      <fieldset id="fs-alt" class="hide">
+        <legend>ご都合が合わない場合の候補 <span class="opt" style="font-weight:500;color:var(--sub);font-size:15px">任意</span></legend>
+        <label class="f" for="alt2">第2希望</label>
+        <input type="text" id="alt2" placeholder="例：10月15日 14時ごろ">
+        <label class="f" for="alt3">第3希望</label>
+        <input type="text" id="alt3" placeholder="例：10月16日 午前">
+      </fieldset>
+
+      <fieldset>
+        <legend>ご連絡先</legend>
+        <div id="company-wrap">
+          <label class="f" for="company">会社名</label>
+          <input type="text" id="company" autocomplete="organization">
+        </div>
+        <label class="f" for="name">お名前</label>
+        <input type="text" id="name" autocomplete="name">
+        <label class="f" for="phone">電話番号</label>
+        <input type="tel" id="phone" autocomplete="tel" inputmode="tel">
+        <label class="f" for="email">メールアドレス<span class="opt" id="email-opt">確定のご連絡に使います</span></label>
+        <input type="email" id="email" autocomplete="email" inputmode="email">
+        <div id="fax-wrap">
+          <label class="f" for="fax">FAX番号<span class="opt">メールがない場合</span></label>
+          <input type="tel" id="fax" inputmode="tel">
+        </div>
+      </fieldset>
+
+      <fieldset id="fs-customer" class="hide">
+        <legend>ご購入について</legend>
+        <div class="radios">
+          <label><input type="radio" name="loan" value="現金で購入">現金で購入</label>
+          <label><input type="radio" name="loan" value="住宅ローンの事前審査済み">住宅ローンの事前審査済み</label>
+          <label><input type="radio" name="loan" value="住宅ローンの事前審査を受けたい">住宅ローンの事前審査を受けたい</label>
+          <label><input type="radio" name="loan" value="未定">未定</label>
+        </div>
+        <label class="f" for="people">ご見学の人数<span class="opt">任意</span></label>
+        <select id="people"><option value="">選んでください</option><option>1名</option><option>2名</option><option>3名</option><option>4名以上</option></select>
+      </fieldset>
+
+      <label class="f" for="note">ご連絡事項<span class="opt">任意</span></label>
+      <textarea id="note"></textarea>
+
+      <div id="form-err" class="err hide" role="alert"></div>
+      <button class="go" type="submit" id="submit">送信する</button>
+    </form>
+  </section>
+
+  <!-- タイムレックスへのご案内 -->
+  <section id="s-timerex" class="hide">
+    <button class="back" type="button" id="tr-back">← 戻る</button>
+    <h2 id="tr-title"></h2>
+    <div id="tr-notice" class="notice hide"></div>
+    <p class="lead">担当者の空いている時間から選んでいただけます。次の画面でご希望の日時を選び、ご連絡先を入力してください。</p>
+    <a class="go" id="tr-link" href="#" target="_blank" rel="noopener">空いている日時を見る</a>
+    <p id="tr-none" class="err hide"></p>
+  </section>
+
+  <!-- 結果 -->
+  <section id="s-done" class="hide">
+    <div class="result" id="done-box"></div>
+  </section>
+</main>
+<footer>ViVi不動産株式会社 ／ 富山市</footer>
+
+<script>
+/* ▼ GASを公開したときに表示されるURLに書き換えてください */
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbyj1rgagQQujF9FR4R9AWRYc5JATehBsdq3Wls2cz9Lb3CB3eqXBeuzZjGp6986ASS4/exec';
+
+const TYPE = {
+  bukkaku:  { title:'物件確認（物確）', desc:'募集状況をその場でお知らせします' },
+  key_store:{ title:'鍵の貸出', desc:'店舗で鍵をお渡しします。午前・午後の枠からお選びください' },
+  key_box:  { title:'鍵の貸出（現地キーボックス）', desc:'1時間ごとの枠からお選びください' },
+  attend:   { title:'立会いでのご案内', desc:'当社担当者が現地で立ち会います（1時間）' },
+  land:     { title:'土地のご見学', desc:'ご見学の日時をお知らせください' },
+  ground:   { title:'地盤調査', desc:'調査の日時と所要時間をお知らせください' },
+  viewing:  { title:'物件のご見学', desc:'担当者がご案内します（2時間）' }
+};
+
+const $ = id => document.getElementById(id);
+const state = { id:'', info:null, who:'', type:'', date:'', slot:'', slotText:'', days:[] };
+
+function show(id){
+  ['s-who','s-menu','s-form','s-timerex','s-done'].forEach(s => $(s).classList.toggle('hide', s !== id));
+  window.scrollTo({ top: 0 });
+}
+
+async function api(params){
+  const url = GAS_URL + '?' + new URLSearchParams(params).toString();
+  const res = await fetch(url);
+  const data = await res.json();
+  if (!data.ok) throw new Error(data.error || '読み込みに失敗しました。');
+  return data;
+}
+
+async function post(body){
+  const res = await fetch(GAS_URL, { method:'POST', body: JSON.stringify(body) });
+  const data = await res.json();
+  if (!data.ok) throw new Error(data.error || '送信に失敗しました。');
+  return data;
+}
+
+function fatal(msg){
+  $('loading').classList.add('hide');
+  $('fatal').textContent = msg;
+  $('fatal').classList.remove('hide');
+}
+
+/* ---------- 起動 ---------- */
+(async function init(){
+  state.id = new URLSearchParams(location.search).get('id') || '';
+  if (!state.id) { fatal('物件が指定されていません。看板や資料のQRコードをもう一度読み取ってください。'); return; }
+  try {
+    state.info = await api({ action:'property', id: state.id });
+  } catch (e) { fatal(e.message); return; }
+
+  const p = state.info.property;
+  $('p-kind').textContent = [p.kind, p.occupancy].filter(Boolean).join('／');
+  $('p-name').textContent = p.name;
+  $('p-addr').textContent = p.address;
+  const chip = $('p-chip');
+  chip.textContent = p.status.accepting ? 'ご案内できます' : 'ご案内を停止しています';
+  chip.className = 'chip ' + (p.status.accepting ? 'open' : 'stop');
+  document.title = p.name + '｜ViVi不動産';
+
+  $('loading').classList.add('hide');
+  $('plate').classList.remove('hide');
+  $('who-agent').classList.toggle('hide', state.info.menus.agent.length === 0);
+  $('who-customer').classList.toggle('hide', state.info.menus.customer.length === 0);
+  show('s-who');
+})();
+
+/* ---------- 利用者 ---------- */
+$('who-agent').onclick = () => { state.who = 'agent'; buildMenu(); show('s-menu'); };
+$('who-customer').onclick = () => {
+  state.who = 'customer';
+  openType(state.info.menus.customer[0]);
+};
+$('who-staff').onclick = () => {
+  const url = state.info.contact.staffUrl;
+  if (url) { location.href = url + (url.indexOf('?') === -1 ? '?' : '&') + 'id=' + encodeURIComponent(state.id); }
+  else { alert('スタッフ用の画面は準備中です。'); }
+};
+document.querySelectorAll('[data-back]').forEach(b => b.onclick = () => show(b.dataset.back));
+$('form-back').onclick = backFromType;
+$('tr-back').onclick = backFromType;
+function backFromType(){ show(state.who === 'agent' ? 's-menu' : 's-who'); }
+
+function buildMenu(){
+  const box = $('menu-list');
+  box.innerHTML = '';
+  state.info.menus.agent.forEach(t => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'pick';
+    const s = document.createElement('strong'); s.textContent = TYPE[t].title;
+    const m = document.createElement('small'); m.textContent = TYPE[t].desc;
+    b.append(s, m);
+    b.onclick = () => openType(t);
+    box.appendChild(b);
+  });
+  if (!state.info.property.status.accepting) {
+    const n = document.createElement('p'); n.className = 'notice';
+    n.textContent = 'この物件は現在ご案内を停止しています。物件確認のみご利用いただけます。';
+    box.appendChild(n);
+  }
+}
+
+/* ---------- 種類ごとの画面 ---------- */
+function openType(t){
+  state.type = t; state.date = ''; state.slot = ''; state.slotText = '';
+  const p = state.info.property;
+  if (t === 'attend' || t === 'viewing') { openTimerex(t); return; }
+
+  $('form-title').textContent = TYPE[t].title;
+  $('form-err').classList.add('hide');
+  const isCustomer = state.who === 'customer';
+  $('company-wrap').classList.toggle('hide', isCustomer);
+  $('fax-wrap').classList.toggle('hide', isCustomer);
+  $('fs-customer').classList.toggle('hide', !(isCustomer && t !== 'bukkaku'));
+  $('email-opt').textContent = isCustomer ? '確定のご連絡に使います' : '確定のご連絡に使います（ない場合はFAX番号を）';
+
+  const usesDay = t !== 'bukkaku';
+  $('fs-day').classList.toggle('hide', !usesDay);
+  $('fs-slot').classList.add('hide');
+  $('fs-time').classList.add('hide');
+  $('chosen').classList.add('hide');
+  $('fs-alt').classList.toggle('hide', !(t === 'land' || t === 'ground'));
+  $('duration').classList.toggle('hide', t !== 'ground');
+  $('duration-label').classList.toggle('hide', t !== 'ground');
+
+  const notice = $('form-notice');
+  notice.classList.add('hide');
+  if (t === 'land' || t === 'ground') {
+    notice.innerHTML = '<strong>仮予約です。</strong>売主様にご連絡のうえ、担当者から確定のご連絡をいたします。';
+    notice.classList.remove('hide');
+  } else if (t === 'key_store') {
+    notice.textContent = '鍵は' + (p.keyStore || '当社店舗') + 'でお渡しします。担当者から確定のご連絡をいたします。';
+    notice.classList.remove('hide');
+  } else if (t === 'key_box') {
+    notice.textContent = 'キーボックスの暗証番号は、確定後に担当者からお電話でお伝えします。';
+    notice.classList.remove('hide');
+  }
+  $('submit').textContent = t === 'bukkaku' ? '募集状況を確認する' : '仮予約を送信する';
+  show('s-form');
+  if (usesDay) loadDays();
+}
+
+function openTimerex(t){
+  const p = state.info.property;
+  $('tr-title').textContent = TYPE[t].title;
+  const url = t === 'attend' ? state.info.timerex.agent : state.info.timerex.customer;
+  const n = $('tr-notice');
+  n.classList.add('hide');
+  if (p.occupancy === '居住中' || p.otherCompany) {
+    n.innerHTML = '<strong>仮予約です。</strong>売主様に確認の上、担当者からご連絡いたします。';
+    n.classList.remove('hide');
+  }
+  if (url) {
+    $('tr-link').href = url; $('tr-link').classList.remove('hide'); $('tr-none').classList.add('hide');
+  } else {
+    $('tr-link').classList.add('hide');
+    $('tr-none').textContent = 'お手数ですが、お電話でご予約ください。' + (state.info.contact.phone ? '（' + state.info.contact.phone + '）' : '');
+    $('tr-none').classList.remove('hide');
+  }
+  show('s-timerex');
+}
+
+/* ---------- 日にちと枠 ---------- */
+async function loadDays(){
+  const box = $('days');
+  box.innerHTML = '<p class="lead">空き状況を読み込んでいます…</p>';
+  try {
+    const data = await api({ action:'slots', id: state.id, type: state.type });
+    state.days = data.days;
+    box.innerHTML = '';
+    if (!data.days.length) { box.innerHTML = '<p class="err">現在ご予約いただける日がありません。お電話でご相談ください。</p>'; return; }
+    data.days.forEach(d => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'tile'; b.setAttribute('aria-pressed','false');
+      b.textContent = d.label;
+      if (d.isToday) { const s = document.createElement('small'); s.textContent = '今日'; b.appendChild(s); }
+      b.onclick = () => pickDay(d, b);
+      box.appendChild(b);
+    });
+  } catch (e) { box.innerHTML = ''; showErr(e.message); }
+}
+
+function pickDay(d, btn){
+  state.date = d.date; state.slot = ''; state.slotText = '';
+  document.querySelectorAll('#days .tile').forEach(x => x.setAttribute('aria-pressed', x === btn ? 'true' : 'false'));
+  if (state.type === 'key_store' || state.type === 'key_box') {
+    const box = $('slots'); box.innerHTML = '';
+    d.slots.forEach(s => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'tile'; b.setAttribute('aria-pressed','false');
+      b.disabled = !s.available;
+      b.textContent = state.type === 'key_store' ? s.label : s.time;
+      if (state.type === 'key_store') { const sm = document.createElement('small'); sm.textContent = s.time; b.appendChild(sm); }
+      if (!s.available) { const sm = document.createElement('small'); sm.textContent = '予約済み'; b.appendChild(sm); }
+      b.onclick = () => {
+        state.slot = s.id; state.slotText = (state.type === 'key_store' ? s.label + ' ' : '') + s.time;
+        box.querySelectorAll('.tile').forEach(x => x.setAttribute('aria-pressed', x === b ? 'true' : 'false'));
+        updateChosen();
+      };
+      box.appendChild(b);
+    });
+    $('fs-slot').classList.remove('hide');
+  } else {
+    buildTimes(d);
+    $('fs-time').classList.remove('hide');
+  }
+  updateChosen();
+}
+
+function buildTimes(d){
+  const r = state.info.rules;
+  const toMin = s => { const [h,m] = s.split(':').map(Number); return h*60+m; };
+  const pad = n => String(n).padStart(2,'0');
+  const now = new Date(); const nowMin = now.getHours()*60 + now.getMinutes();
+  const sel = $('time'); sel.innerHTML = '<option value="">選んでください</option>';
+  for (let t = toMin(r.open); t < toMin(r.close); t += r.landStep) {
+    if (d.isToday && t <= nowMin) continue;
+    const o = document.createElement('option');
+    o.textContent = pad(Math.floor(t/60)) + ':' + pad(t%60);
+    sel.appendChild(o);
+  }
+  sel.onchange = updateChosen;
+}
+
+function updateChosen(){
+  const d = state.days.find(x => x.date === state.date);
+  const el = $('chosen');
+  let text = '';
+  if (d) {
+    text = d.label;
+    if (state.slotText) text += ' ' + state.slotText;
+    if (!$('fs-time').classList.contains('hide') && $('time').value) text += ' ' + $('time').value + 'から';
+  }
+  el.textContent = text ? 'ご希望：' + text : '';
+  el.classList.toggle('hide', !text);
+}
+
+/* ---------- 送信 ---------- */
+function showErr(msg){ const e = $('form-err'); e.textContent = msg; e.classList.remove('hide'); e.scrollIntoView({ block:'center' }); }
+
+$('form').addEventListener('submit', async ev => {
+  ev.preventDefault();
+  $('form-err').classList.add('hide');
+  const t = state.type, isCustomer = state.who === 'customer';
+  const v = id => $(id).value.trim();
+  const body = {
+    action: t === 'bukkaku' ? 'bukkaku' : 'reserve',
+    propertyId: state.id, type: t, who: state.who,
+    company: isCustomer ? '' : v('company'), name: v('name'), phone: v('phone'),
+    email: v('email'), fax: isCustomer ? '' : v('fax'), note: v('note'),
+    date: state.date, slot: state.slot, time: v('time'), duration: v('duration'),
+    alt2: v('alt2'), alt3: v('alt3'),
+    loan: (document.querySelector('input[name=loan]:checked') || {}).value || '',
+    people: v('people')
+  };
+
+  if (!isCustomer && !body.company) return showErr('会社名を入力してください。');
+  if (!body.name) return showErr('お名前を入力してください。');
+  if (!body.phone) return showErr('電話番号を入力してください。');
+  if (t !== 'bukkaku') {
+    if (!body.date) return showErr('日にちを選んでください。');
+    if ((t === 'key_store' || t === 'key_box') && !body.slot) return showErr('時間を選んでください。');
+    if ((t === 'land' || t === 'ground') && !body.time) return showErr('時刻を選んでください。');
+    if (t === 'ground' && !body.duration) return showErr('所要時間を選んでください。');
+    if (isCustomer && !body.email) return showErr('確定のご連絡のため、メールアドレスを入力してください。');
+    if (!isCustomer && !body.email && !body.fax) return showErr('確定のご連絡のため、メールアドレスかFAX番号を入力してください。');
+  }
+
+  const btn = $('submit'); const label = btn.textContent;
+  btn.disabled = true; btn.textContent = '送信しています…';
+  try {
+    const res = await post(body);
+    if (t === 'bukkaku') doneBukkaku(res, body); else doneReserve(res, body);
+  } catch (e) {
+    showErr(e.message);
+    if (t === 'key_store' || t === 'key_box') loadDays();
+  } finally {
+    btn.disabled = false; btn.textContent = label;
+  }
+});
+
+function row(dl, k, val){
+  if (!val) return;
+  const dt = document.createElement('dt'); dt.textContent = k;
+  const dd = document.createElement('dd'); dd.textContent = val;
+  dl.append(dt, dd);
+}
+
+function doneBukkaku(res){
+  const box = $('done-box'); box.innerHTML = '';
+  const h = document.createElement('p'); h.className = 'big'; h.textContent = res.status.label;
+  const m = document.createElement('p'); m.textContent = res.status.message;
+  box.append(h, m);
+  if (res.status.accepting && state.info.menus.agent.length > 1) {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'go';
+    b.textContent = '続けてご予約する';
+    b.onclick = () => { buildMenu(); show('s-menu'); };
+    box.appendChild(b);
+  }
+  show('s-done');
+}
+
+function doneReserve(res, body){
+  const d = state.days.find(x => x.date === state.date);
+  const box = $('done-box'); box.innerHTML = '';
+  const h = document.createElement('p'); h.className = 'big'; h.textContent = '仮予約を受け付けました';
+  const m = document.createElement('p');
+  m.textContent = 'まだ確定ではありません。担当者から確定のご連絡をいたします。' +
+    (body.email ? '受付内容をメールでお送りしました。' : '');
+  const dl = document.createElement('dl');
+  row(dl, '受付番号', res.id);
+  row(dl, '物件', state.info.property.name);
+  row(dl, 'ご予約', TYPE[state.type].title);
+  row(dl, '日時', (d ? d.label : '') + ' ' + (res.timeText || ''));
+  if (body.duration) row(dl, '所要時間', body.duration);
+  box.append(h, m, dl);
+  show('s-done');
+}
+</script>
+</body>
+</html>
