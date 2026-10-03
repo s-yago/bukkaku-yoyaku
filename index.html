@@ -278,9 +278,13 @@ function fatal(msg){
   $('p-name').textContent = p.name;
   $('p-addr').textContent = p.address;
   const chip = $('p-chip');
-  chip.textContent = !p.status.accepting ? 'ご案内を停止しています'
-                   : (p.status.secondary ? '二番手でご案内できます' : 'ご案内できます');
-  chip.className = 'chip ' + (!p.status.accepting ? 'stop' : (p.status.secondary ? 'second' : 'open'));
+  const A = p.status.agent, C = p.status.customer;
+  let chipText = 'ご案内できます', chipCls = 'open';
+  if (!A.accepting && !C.accepting) { chipText = 'ご案内を停止しています'; chipCls = 'stop'; }
+  else if (!A.accepting) { chipText = '一般のお客様のご見学のみ受付中'; chipCls = 'second'; }
+  else if (A.secondary || (C.accepting && C.secondary)) { chipText = '二番手でご案内できます'; chipCls = 'second'; }
+  chip.textContent = chipText;
+  chip.className = 'chip ' + chipCls;
   document.title = p.name + '｜ViVi不動産';
 
   $('loading').classList.add('hide');
@@ -318,9 +322,9 @@ function buildMenu(){
     b.onclick = () => openType(t);
     box.appendChild(b);
   });
-  if (!state.info.property.status.accepting) {
+  if (!state.info.property.status.agent.accepting) {
     const n = document.createElement('p'); n.className = 'notice';
-    n.textContent = 'この物件は現在ご案内を停止しています。物件確認のみご利用いただけます。';
+    n.textContent = '業者様のご案内は現在停止しています。物件確認のみご利用いただけます。';
     box.appendChild(n);
   }
 }
@@ -329,7 +333,8 @@ function buildMenu(){
 function openType(t){
   state.type = t; state.date = ''; state.slot = ''; state.slotText = '';
   const p = state.info.property;
-  if (t === 'attend' || t === 'viewing') { openTimerex(t); return; }
+  const isTr = t === 'attend' || t === 'viewing';
+  if (isTr && !(t === 'attend' ? state.info.timerex.agent : state.info.timerex.customer)) { openTimerex(t); return; }
 
   $('form-title').textContent = TYPE[t].title;
   $('form-err').classList.add('hide');
@@ -339,7 +344,7 @@ function openType(t){
   $('fs-customer').classList.toggle('hide', !(isCustomer && t !== 'bukkaku'));
   $('email-opt').textContent = isCustomer ? '確定のご連絡に使います' : '確定のご連絡に使います（ない場合はFAX番号を）';
 
-  const usesDay = t !== 'bukkaku';
+  const usesDay = t !== 'bukkaku' && !isTr;
   $('fs-day').classList.toggle('hide', !usesDay);
   $('fs-slot').classList.add('hide');
   $('fs-time').classList.add('hide');
@@ -359,8 +364,12 @@ function openType(t){
   } else if (t === 'key_box') {
     notice.textContent = 'キーボックスの暗証番号は、確定後に担当者からお電話でお伝えします。';
     notice.classList.remove('hide');
+  } else if (isTr) {
+    notice.innerHTML = 'ご連絡先を入力すると、次の画面で<strong>担当者の空いている日時</strong>を選べます。' +
+      ((p.occupancy === '居住中' || p.otherCompany) ? '<br>売主様に確認の上、担当者から確定のご連絡をいたします。' : '');
+    notice.classList.remove('hide');
   }
-  const second = p.status.secondary && t !== 'bukkaku';
+  const second = t !== 'bukkaku' && p.status[state.who].secondary;
   $('second-wrap').classList.toggle('hide', !second);
   $('second-ok').checked = false;
   if (second) {
@@ -368,7 +377,8 @@ function openType(t){
       (notice.classList.contains('hide') ? '' : '<br>' + notice.innerHTML);
     notice.classList.remove('hide');
   }
-  $('submit').textContent = t === 'bukkaku' ? '募集状況を確認する' : '仮予約を送信する';
+  $('submit').textContent = t === 'bukkaku' ? '募集状況を確認する' : (isTr ? '次へ：空いている日時を選ぶ' : '仮予約を送信する');
+  $('email-opt').textContent = isTr ? '必須：次の画面でも同じアドレスを入力してください' : $('email-opt').textContent;
   show('s-form');
   if (usesDay) loadDays();
 }
@@ -383,7 +393,7 @@ function openTimerex(t){
     n.innerHTML = '<strong>仮予約です。</strong>売主様に確認の上、担当者からご連絡いたします。';
     n.classList.remove('hide');
   }
-  const second = p.status.secondary;
+  const second = p.status[state.who].secondary;
   $('tr-second-wrap').classList.toggle('hide', !second);
   $('tr-second-ok').checked = false;
   if (second) {
@@ -487,8 +497,9 @@ $('form').addEventListener('submit', async ev => {
   $('form-err').classList.add('hide');
   const t = state.type, isCustomer = state.who === 'customer';
   const v = id => $(id).value.trim();
+  const isTr = t === 'attend' || t === 'viewing';
   const body = {
-    action: t === 'bukkaku' ? 'bukkaku' : 'reserve',
+    action: t === 'bukkaku' ? 'bukkaku' : (isTr ? 'pretimerex' : 'reserve'),
     propertyId: state.id, type: t, who: state.who,
     company: isCustomer ? '' : v('company'), name: v('name'), phone: v('phone'),
     email: v('email'), fax: isCustomer ? '' : v('fax'), note: v('note'),
@@ -498,14 +509,15 @@ $('form').addEventListener('submit', async ev => {
     people: v('people'),
     secondOk: $('second-ok').checked
   };
-  if (t !== 'bukkaku' && state.info.property.status.secondary && !body.secondOk) {
+  if (t !== 'bukkaku' && state.info.property.status[state.who].secondary && !body.secondOk) {
     return showErr('二番手でのご案内となることを了承のうえ、チェックを入れてください。');
   }
 
   if (!isCustomer && !body.company) return showErr('会社名を入力してください。');
   if (!body.name) return showErr('お名前を入力してください。');
   if (!body.phone) return showErr('電話番号を入力してください。');
-  if (t !== 'bukkaku') {
+  if (isTr && !body.email) return showErr('メールアドレスを入力してください。予約の照合に使います。');
+  if (t !== 'bukkaku' && !isTr) {
     if (!body.date) return showErr('日にちを選んでください。');
     if ((t === 'key_store' || t === 'key_box') && !body.slot) return showErr('時間を選んでください。');
     if ((t === 'land' || t === 'ground') && !body.time) return showErr('時刻を選んでください。');
@@ -518,7 +530,9 @@ $('form').addEventListener('submit', async ev => {
   btn.disabled = true; btn.textContent = '送信しています…';
   try {
     const res = await post(body);
-    if (t === 'bukkaku') doneBukkaku(res, body); else doneReserve(res, body);
+    if (t === 'bukkaku') doneBukkaku(res, body);
+    else if (isTr) showTimerexStep(res.url, body.email);
+    else doneReserve(res, body);
   } catch (e) {
     showErr(e.message);
     if (t === 'key_store' || t === 'key_box') loadDays();
@@ -526,6 +540,20 @@ $('form').addEventListener('submit', async ev => {
     btn.disabled = false; btn.textContent = label;
   }
 });
+
+function showTimerexStep(url, email){
+  $('tr-title').textContent = TYPE[state.type].title + '：日時を選ぶ';
+  $('tr-second-wrap').classList.add('hide');
+  $('tr-second-ok').checked = true;
+  const n = $('tr-notice');
+  n.innerHTML = '<strong>まだ予約は完了していません。</strong>下のボタンから日時を選び、ご連絡先に<strong>同じメールアドレス</strong>（' +
+    email.replace(/[<>&"]/g, '') + '）を入力してください。';
+  n.classList.remove('hide');
+  $('tr-link').href = url; $('tr-link').classList.remove('hide');
+  $('tr-link').onclick = null;
+  $('tr-none').classList.add('hide');
+  show('s-timerex');
+}
 
 function row(dl, k, val){
   if (!val) return;
