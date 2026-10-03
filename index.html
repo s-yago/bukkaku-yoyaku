@@ -34,6 +34,9 @@
   .chip{display:inline-block;margin-top:10px;padding:4px 14px;border-radius:999px;font-weight:700;font-size:16px}
   .chip.open{background:var(--ok-soft);color:var(--ok)}
   .chip.stop{background:var(--ng-soft);color:var(--ng)}
+  .chip.second{background:var(--orange-soft);color:var(--orange-deep)}
+  .agree{display:block;background:var(--paper);border:3px solid var(--orange);border-radius:12px;padding:14px 16px;margin:0 0 20px;font-weight:700;cursor:pointer;line-height:1.6}
+  .agree input{width:24px;height:24px;vertical-align:-5px;margin-right:10px;accent-color:var(--orange)}
 
   h2{font-size:22px;margin:8px 0 14px;color:var(--navy-ink);font-weight:700}
   p.lead{margin:0 0 16px;color:var(--sub)}
@@ -133,6 +136,7 @@
     <h2 id="form-title"></h2>
     <div id="form-notice" class="notice hide"></div>
     <form id="form" novalidate>
+      <label class="agree hide" id="second-wrap"><input type="checkbox" id="second-ok">申込が入っており、<u>二番手でのご案内</u>となることを了承します</label>
       <fieldset id="fs-day" class="hide">
         <legend>日にち</legend>
         <div class="days" id="days"></div>
@@ -205,6 +209,7 @@
     <button class="back" type="button" id="tr-back">← 戻る</button>
     <h2 id="tr-title"></h2>
     <div id="tr-notice" class="notice hide"></div>
+    <label class="agree hide" id="tr-second-wrap"><input type="checkbox" id="tr-second-ok">申込が入っており、<u>二番手でのご案内</u>となることを了承します</label>
     <p class="lead">担当者の空いている時間から選んでいただけます。次の画面でご希望の日時を選び、ご連絡先を入力してください。</p>
     <a class="go" id="tr-link" href="#" target="_blank" rel="noopener">空いている日時を見る</a>
     <p id="tr-none" class="err hide"></p>
@@ -273,8 +278,9 @@ function fatal(msg){
   $('p-name').textContent = p.name;
   $('p-addr').textContent = p.address;
   const chip = $('p-chip');
-  chip.textContent = p.status.accepting ? 'ご案内できます' : 'ご案内を停止しています';
-  chip.className = 'chip ' + (p.status.accepting ? 'open' : 'stop');
+  chip.textContent = !p.status.accepting ? 'ご案内を停止しています'
+                   : (p.status.secondary ? '二番手でご案内できます' : 'ご案内できます');
+  chip.className = 'chip ' + (!p.status.accepting ? 'stop' : (p.status.secondary ? 'second' : 'open'));
   document.title = p.name + '｜ViVi不動産';
 
   $('loading').classList.add('hide');
@@ -354,6 +360,14 @@ function openType(t){
     notice.textContent = 'キーボックスの暗証番号は、確定後に担当者からお電話でお伝えします。';
     notice.classList.remove('hide');
   }
+  const second = p.status.secondary && t !== 'bukkaku';
+  $('second-wrap').classList.toggle('hide', !second);
+  $('second-ok').checked = false;
+  if (second) {
+    notice.innerHTML = '<strong>申込が入っています。</strong>一番手の方がキャンセルされた場合に備えて、二番手としてご案内いたします。' +
+      (notice.classList.contains('hide') ? '' : '<br>' + notice.innerHTML);
+    notice.classList.remove('hide');
+  }
   $('submit').textContent = t === 'bukkaku' ? '募集状況を確認する' : '仮予約を送信する';
   show('s-form');
   if (usesDay) loadDays();
@@ -369,6 +383,17 @@ function openTimerex(t){
     n.innerHTML = '<strong>仮予約です。</strong>売主様に確認の上、担当者からご連絡いたします。';
     n.classList.remove('hide');
   }
+  const second = p.status.secondary;
+  $('tr-second-wrap').classList.toggle('hide', !second);
+  $('tr-second-ok').checked = false;
+  if (second) {
+    n.innerHTML = '<strong>申込が入っています。</strong>二番手としてのご案内となります。' +
+      (n.classList.contains('hide') ? '' : '<br>' + n.innerHTML);
+    n.classList.remove('hide');
+  }
+  $('tr-link').onclick = ev => {
+    if (second && !$('tr-second-ok').checked) { ev.preventDefault(); alert('二番手でのご案内となることを了承のうえ、チェックを入れてください。'); }
+  };
   if (url) {
     $('tr-link').href = url; $('tr-link').classList.remove('hide'); $('tr-none').classList.add('hide');
   } else {
@@ -470,8 +495,12 @@ $('form').addEventListener('submit', async ev => {
     date: state.date, slot: state.slot, time: v('time'), duration: v('duration'),
     alt2: v('alt2'), alt3: v('alt3'),
     loan: (document.querySelector('input[name=loan]:checked') || {}).value || '',
-    people: v('people')
+    people: v('people'),
+    secondOk: $('second-ok').checked
   };
+  if (t !== 'bukkaku' && state.info.property.status.secondary && !body.secondOk) {
+    return showErr('二番手でのご案内となることを了承のうえ、チェックを入れてください。');
+  }
 
   if (!isCustomer && !body.company) return showErr('会社名を入力してください。');
   if (!body.name) return showErr('お名前を入力してください。');
