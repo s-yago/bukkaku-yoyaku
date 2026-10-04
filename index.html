@@ -687,8 +687,10 @@ function showReturn(s){
   $('key-ok-wrap').classList.toggle('hide', !s.partial);
   $('key-ok').checked = false;
   if (s.partial) $('key-partial').textContent = '先行のご案内予約があり、' + s.from + '以降の貸し出しなら可能です。';
-  $('key-returnby').classList.toggle('hide', !s.returnBy);
-  if (s.returnBy) $('key-returnby').textContent = '次のご予約があるため、' + s.returnBy + 'までにご返却ください。';
+  $('key-returnby').classList.remove('hide');
+  $('key-returnby').textContent = s.tight
+    ? '次のご予約が入っておりますので、' + s.returnByLabel + 'までにお返しください。'
+    : 'ご案内等が終わりましたら、速やかにご返却ください。';
   $('ret-date').value = state.date; $('ret-date').min = state.date;
   const sel = $('ret-time'); sel.innerHTML = '<option value="">選んでください</option>';
   (state.returnTimes || []).forEach(t => { const o = document.createElement('option'); o.value = t; o.textContent = t; sel.appendChild(o); });
