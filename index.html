@@ -448,6 +448,12 @@ function buildMenu(){
     b.onclick = () => openType(t);
     box.appendChild(b);
   });
+  if (state.info.property.status.agent.accepting && state.info.menus.agent.length === 1) {
+    const n = document.createElement('p'); n.className = 'notice';
+    n.textContent = 'ご案内・鍵の貸出については、担当者までお問い合わせください。' +
+      (state.info.contact.phone ? '（TEL ' + state.info.contact.phone + '）' : '');
+    box.appendChild(n);
+  }
   if (!state.info.property.status.agent.accepting) {
     const n = document.createElement('p'); n.className = 'notice';
     n.textContent = '現在お申込みが入っております。ご案内については担当者までお問い合わせください。' +
