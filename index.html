@@ -195,8 +195,18 @@
         <div class="days" id="days"></div>
       </fieldset>
       <fieldset id="fs-slot" class="hide">
-        <legend>時間</legend>
+        <legend id="slot-legend">時間</legend>
         <div class="slots" id="slots"></div>
+      </fieldset>
+      <fieldset id="fs-return" class="hide">
+        <legend>鍵の返却予定</legend>
+        <div class="busy hide" id="key-partial"></div>
+        <label class="agree hide" id="key-ok-wrap"><input type="checkbox" id="key-ok">上記の内容を確認しました</label>
+        <p class="lead hide" id="key-returnby" style="font-size:16px;color:#B3362B;font-weight:700"></p>
+        <div style="display:flex;gap:10px">
+          <label style="flex:1">返却日<input type="date" id="ret-date" style="width:100%;font:inherit;font-size:18px;padding:10px;border:2px solid var(--line);border-radius:10px;background:#fff"></label>
+          <label style="flex:1">返却時刻<select id="ret-time"></select></label>
+        </div>
       </fieldset>
       <fieldset id="fs-time" class="hide">
         <legend>時刻</legend>
@@ -300,8 +310,8 @@ const GAS_URL = 'https://script.google.com/macros/s/AKfycbyj1rgagQQujF9FR4R9AWRY
 
 const TYPE = {
   bukkaku:  { title:'物件確認（物確）', desc:'募集状況をその場でお知らせします' },
-  key_store:{ title:'鍵の貸出', desc:'店舗で鍵をお渡しします。午前・午後の枠からお選びください' },
-  key_box:  { title:'鍵の貸出（現地キーボックス）', desc:'1時間ごとの枠からお選びください' },
+  key_store:{ title:'お客様ご案内等（鍵の貸出）', desc:'店舗で鍵をお渡しします。受け取りの枠（午前・午後）と返却日時をお選びください' },
+  key_box:  { title:'お客様ご案内等（鍵の貸出・現地キーボックス）', desc:'1時間ごとの枠からお選びください' },
   attend:   { title:'立会いでのご案内', desc:'当社担当者が現地で立ち会います（1時間）' },
   land:     { title:'土地のご見学', desc:'ご見学の日時をお知らせください' },
   ground:   { title:'地盤調査', desc:'調査の日時と所要時間をお知らせください' },
@@ -507,7 +517,9 @@ function buildMenu(){
 
 /* ---------- 種類ごとの画面 ---------- */
 function openType(t){
-  state.type = t; state.date = ''; state.slot = ''; state.slotText = '';
+  state.type = t; state.date = ''; state.slot = ''; state.slotText = ''; state.keySlot = null;
+  $('fs-return').classList.add('hide');
+  $('slot-legend').textContent = t === 'key_store' ? '鍵の受け取り（午前・午後）' : '時間';
   const p = state.info.property;
   const isCal = t === 'attend' || t === 'viewing' || t === 'visit';
   $('fs-visit').classList.toggle('hide', t !== 'visit');
@@ -603,6 +615,7 @@ async function loadDays(){
   box.innerHTML = '<p class="lead">空き状況を読み込んでいます…</p>';
   try {
     const data = await api({ action:'slots', id: state.id, type: state.type });
+    state.returnTimes = data.returnTimes || [];
     state.days = data.days;
     box.innerHTML = '';
     if (!data.days.length) { box.innerHTML = '<p class="err">現在ご予約いただける日がありません。お電話でご相談ください。</p>'; return; }
@@ -623,10 +636,12 @@ function pickDay(d, btn){
     state.date = ''; state.slot = ''; state.slotText = '';
     document.querySelectorAll('#days .tile').forEach(x => x.setAttribute('aria-pressed', 'false'));
     $('slots').innerHTML = ''; $('fs-slot').classList.add('hide'); $('fs-time').classList.add('hide');
+    $('fs-return').classList.add('hide');
     updateChosen();
     return;
   }
   state.date = d.date; state.slot = ''; state.slotText = '';
+  $('fs-return').classList.add('hide');
   document.querySelectorAll('#days .tile').forEach(x => x.setAttribute('aria-pressed', x === btn ? 'true' : 'false'));
   if (['key_store', 'key_box', 'attend', 'viewing', 'visit'].indexOf(state.type) !== -1) {
     const box = $('slots'); box.innerHTML = '';
@@ -635,15 +650,23 @@ function pickDay(d, btn){
       b.type = 'button'; b.className = 'tile'; b.setAttribute('aria-pressed','false');
       b.disabled = !s.available;
       b.textContent = state.type === 'key_store' ? s.label : s.time;
-      if (state.type === 'key_store') { const sm = document.createElement('small'); sm.textContent = s.time; b.appendChild(sm); }
+      if (state.type === 'key_store') {
+        const sm = document.createElement('small');
+        sm.textContent = s.partial && s.available ? s.from + '以降' : s.time;
+        b.appendChild(sm);
+      }
       if (!s.available) { const sm = document.createElement('small'); sm.textContent = '予約済み'; b.appendChild(sm); }
       b.onclick = () => {
         if (state.slot === s.id) {               /* 同じ時間をもう一度押すと解除 */
           state.slot = ''; state.slotText = '';
           b.setAttribute('aria-pressed', 'false');
+          $('fs-return').classList.add('hide');
         } else {
-          state.slot = s.id; state.slotText = (state.type === 'key_store' ? s.label + ' ' : '') + s.time;
+          state.slot = s.id;
+          state.slotText = state.type === 'key_store'
+            ? s.label + ' ' + (s.from ? s.from + '〜' + s.time.split('〜')[1] : s.time) : s.time;
           box.querySelectorAll('.tile').forEach(x => x.setAttribute('aria-pressed', x === b ? 'true' : 'false'));
+          if (state.type === 'key_store') showReturn(s);
         }
         updateChosen();
       };
@@ -655,6 +678,21 @@ function pickDay(d, btn){
     $('fs-time').classList.remove('hide');
   }
   updateChosen();
+}
+
+/* 鍵の貸出：返却日時の入力と、先行予約の案内 */
+function showReturn(s){
+  $('fs-return').classList.remove('hide');
+  $('key-partial').classList.toggle('hide', !s.partial);
+  $('key-ok-wrap').classList.toggle('hide', !s.partial);
+  $('key-ok').checked = false;
+  if (s.partial) $('key-partial').textContent = '先行のご案内予約があり、' + s.from + '以降の貸し出しなら可能です。';
+  $('key-returnby').classList.toggle('hide', !s.returnBy);
+  if (s.returnBy) $('key-returnby').textContent = '次のご予約があるため、' + s.returnBy + 'までにご返却ください。';
+  $('ret-date').value = state.date; $('ret-date').min = state.date;
+  const sel = $('ret-time'); sel.innerHTML = '<option value="">選んでください</option>';
+  (state.returnTimes || []).forEach(t => { const o = document.createElement('option'); o.value = t; o.textContent = t; sel.appendChild(o); });
+  state.keySlot = s;
 }
 
 function buildTimes(d){
@@ -705,7 +743,10 @@ $('form').addEventListener('submit', async ev => {
     store: (document.querySelector('input[name=store]:checked') || {}).value || '',
     alsoView: $('also-view').checked,
     people: peopleText(),
-    secondOk: $('second-ok').checked
+    secondOk: $('second-ok').checked,
+    returnDate: t === 'key_store' ? $('ret-date').value : '',
+    returnTime: t === 'key_store' ? $('ret-time').value : '',
+    partialOk: t === 'key_store' && $('key-ok').checked
   };
   if (t !== 'bukkaku' && t !== 'visit' && state.info.property.status[state.who].secondary && !body.secondOk) {
     return showErr('上記の内容をご確認のうえ、チェックを入れてください。');
@@ -720,6 +761,10 @@ $('form').addEventListener('submit', async ev => {
     if (!body.date && !requestOnly) return showErr(isCal
       ? '日にちと時間を選ぶか、「ほかのご希望日時」の第2希望を書いてください。' : '日にちを選んでください。');
     if (slotted && !requestOnly && !body.slot) return showErr('時間を選んでください。');
+    if (t === 'key_store') {
+      if (state.keySlot && state.keySlot.partial && !body.partialOk) return showErr('先行のご予約について、「上記の内容を確認しました」にチェックを入れてください。');
+      if (!body.returnDate || !body.returnTime) return showErr('鍵の返却日時を選んでください。');
+    }
     if (requestOnly) { body.date = ''; body.slot = ''; }
     if (t === 'visit' && !body.store) return showErr('ご来店の店舗を選んでください。');
     if ((t === 'land' || t === 'ground') && !body.time) return showErr('時刻を選んでください。');
@@ -810,6 +855,7 @@ function doneReserve(res, body){
   if (body.date) row(dl, '日時', (d ? d.label : '') + ' ' + (res.timeText || ''));
   else { row(dl, '第2希望', body.alt2); row(dl, '第3希望', body.alt3); }
   if (body.duration) row(dl, '所要時間', body.duration);
+  if (body.returnDate) row(dl, '鍵の返却予定', body.returnDate.replace(/^\d{4}-0?(\d+)-0?(\d+)$/, '$1月$2日') + ' ' + body.returnTime);
   box.append(h, m, dl);
   show('s-done');
 }
