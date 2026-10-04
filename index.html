@@ -172,6 +172,19 @@
     <form id="form" novalidate>
       <div class="busy hide" id="busy-text"></div>
       <label class="agree hide" id="second-wrap"><input type="checkbox" id="second-ok">上記の内容を確認しました</label>
+      <fieldset id="fs-visit" class="hide">
+        <legend>ご来店について</legend>
+        <div class="busy" style="background:#FCEBDC;white-space:normal"><strong style="font-size:18px">🏠 </strong><span id="visit-hook" style="white-space:pre-wrap;font-weight:700"></span><br>
+          <a id="visit-event" href="#" target="_blank" rel="noopener" style="display:inline-block;margin-top:8px;font-weight:900;font-size:18px;color:#B8601A">👉 今月のイベントはこちら</a>
+        </div>
+        <label class="f">ご来店の店舗</label>
+        <div class="radios">
+          <label><input type="radio" name="store" value="天正寺本店">天正寺本店</label>
+          <label><input type="radio" name="store" value="総曲輪店">総曲輪店（市民プラザ前）</label>
+        </div>
+        <label class="agree" style="margin-top:12px"><input type="checkbox" id="also-view">ご来店のあと、この物件も見学したい</label>
+      </fieldset>
+
       <fieldset id="fs-day" class="hide">
         <legend>日にち</legend>
         <div class="days" id="days"></div>
@@ -287,7 +300,8 @@ const TYPE = {
   attend:   { title:'立会いでのご案内', desc:'当社担当者が現地で立ち会います（1時間）' },
   land:     { title:'土地のご見学', desc:'ご見学の日時をお知らせください' },
   ground:   { title:'地盤調査', desc:'調査の日時と所要時間をお知らせください' },
-  viewing:  { title:'物件のご見学', desc:'担当者がご案内します（2時間）' }
+  viewing:  { title:'この物件を見学する', desc:'担当者がご案内します（現地案内だけなら約30〜60分程度）' },
+  visit:    { title:'まず店舗で相談する（来店予約）', desc:'資金計画・リノベーションのご相談や、物件のご紹介もできます（現地案内も含めて約2時間程度）' }
 };
 
 const $ = id => document.getElementById(id);
@@ -424,7 +438,8 @@ document.querySelectorAll('#list-kinds button').forEach(b => b.onclick = () => {
 $('who-agent').onclick = () => { state.who = 'agent'; buildMenu(); show('s-menu'); };
 $('who-customer').onclick = () => {
   state.who = 'customer';
-  openType(state.info.menus.customer[0]);
+  if (state.info.menus.customer.length > 1) { buildMenu(); show('s-menu'); }
+  else openType(state.info.menus.customer[0]);
 };
 $('who-staff').onclick = () => {
   const url = state.info.contact.staffUrl;
@@ -434,12 +449,13 @@ $('who-staff').onclick = () => {
 document.querySelectorAll('[data-back]').forEach(b => b.onclick = () => show(b.dataset.back));
 $('form-back').onclick = backFromType;
 $('tr-back').onclick = backFromType;
-function backFromType(){ show(state.who === 'agent' ? 's-menu' : 's-who'); }
+function backFromType(){ show(state.who === 'agent' || state.info.menus.customer.length > 1 ? 's-menu' : 's-who'); }
 
 function buildMenu(){
   const box = $('menu-list');
   box.innerHTML = '';
-  state.info.menus.agent.forEach(t => {
+  const isAgent = state.who === 'agent';
+  state.info.menus[isAgent ? 'agent' : 'customer'].forEach(t => {
     const b = document.createElement('button');
     b.type = 'button'; b.className = 'pick';
     const s = document.createElement('strong'); s.textContent = TYPE[t].title;
@@ -448,6 +464,14 @@ function buildMenu(){
     b.onclick = () => openType(t);
     box.appendChild(b);
   });
+  if (!isAgent) {
+    if (!state.info.property.status.customer.accepting) {
+      const n = document.createElement('p'); n.className = 'notice';
+      n.textContent = '申込が入っているため、現在この物件のご見学は停止しています。店舗でのご相談・ほかの物件のご紹介は承っております。';
+      box.appendChild(n);
+    }
+    return;
+  }
   if (state.info.property.status.agent.accepting && state.info.menus.agent.length === 1) {
     const n = document.createElement('p'); n.className = 'notice';
     n.textContent = 'ご案内・鍵の貸出については、担当者までお問い合わせください。' +
@@ -466,7 +490,12 @@ function buildMenu(){
 function openType(t){
   state.type = t; state.date = ''; state.slot = ''; state.slotText = '';
   const p = state.info.property;
-  const isCal = t === 'attend' || t === 'viewing';
+  const isCal = t === 'attend' || t === 'viewing' || t === 'visit';
+  $('fs-visit').classList.toggle('hide', t !== 'visit');
+  if (t === 'visit') {
+    $('visit-hook').textContent = state.info.visit.hook;
+    $('visit-event').href = state.info.visit.eventUrl;
+  }
 
   $('form-title').textContent = TYPE[t].title;
   $('form-err').classList.add('hide');
@@ -499,14 +528,16 @@ function openType(t){
     notice.textContent = 'キーボックスの暗証番号は、確定後に担当者からお電話でお伝えします。';
     notice.classList.remove('hide');
   } else if (isCal) {
-    notice.innerHTML = (t === 'attend' ? '当社担当者が現地で立ち会います（約1時間）。' : '担当者がご案内します（約2時間）。') +
+    notice.innerHTML = (t === 'attend' ? '当社担当者が現地で立ち会います（約1時間）。'
+        : t === 'visit' ? '店舗で担当者がご相談をお受けします（現地案内も含めて約2時間程度）。'
+        : '担当者がご案内します（現地案内だけなら約30〜60分程度）。') +
       '担当者の空いている時間からお選びください。' +
-      ((p.occupancy === '居住中' || p.otherCompany)
+      ((t !== 'visit' && (p.occupancy === '居住中' || p.otherCompany))
         ? '<br><strong>仮予約です。</strong>売主様に確認の上、担当者から確定のご連絡をいたします。'
         : '担当者から確定のご連絡をいたします。');
     notice.classList.remove('hide');
   }
-  const second = t !== 'bukkaku' && p.status[state.who].secondary;
+  const second = t !== 'bukkaku' && t !== 'visit' && p.status[state.who].secondary;
   $('second-wrap').classList.toggle('hide', !second);
   $('second-ok').checked = false;
   $('busy-text').classList.toggle('hide', !second);
@@ -578,7 +609,7 @@ function pickDay(d, btn){
   }
   state.date = d.date; state.slot = ''; state.slotText = '';
   document.querySelectorAll('#days .tile').forEach(x => x.setAttribute('aria-pressed', x === btn ? 'true' : 'false'));
-  if (['key_store', 'key_box', 'attend', 'viewing'].indexOf(state.type) !== -1) {
+  if (['key_store', 'key_box', 'attend', 'viewing', 'visit'].indexOf(state.type) !== -1) {
     const box = $('slots'); box.innerHTML = '';
     d.slots.forEach(s => {
       const b = document.createElement('button');
@@ -643,7 +674,7 @@ $('form').addEventListener('submit', async ev => {
   $('form-err').classList.add('hide');
   const t = state.type, isCustomer = state.who === 'customer';
   const v = id => $(id).value.trim();
-  const slotted = ['key_store', 'key_box', 'attend', 'viewing'].indexOf(t) !== -1;
+  const slotted = ['key_store', 'key_box', 'attend', 'viewing', 'visit'].indexOf(t) !== -1;
   const body = {
     action: t === 'bukkaku' ? 'bukkaku' : 'reserve',
     propertyId: state.id, type: t, who: state.who,
@@ -652,10 +683,12 @@ $('form').addEventListener('submit', async ev => {
     date: state.date, slot: state.slot, time: v('time'), duration: v('duration'),
     alt2: v('alt2'), alt3: v('alt3'),
     loan: loanText(),
+    store: (document.querySelector('input[name=store]:checked') || {}).value || '',
+    alsoView: $('also-view').checked,
     people: peopleText(),
     secondOk: $('second-ok').checked
   };
-  if (t !== 'bukkaku' && state.info.property.status[state.who].secondary && !body.secondOk) {
+  if (t !== 'bukkaku' && t !== 'visit' && state.info.property.status[state.who].secondary && !body.secondOk) {
     return showErr('上記の内容をご確認のうえ、チェックを入れてください。');
   }
 
@@ -663,12 +696,13 @@ $('form').addEventListener('submit', async ev => {
   if (!body.name) return showErr('お名前を入力してください。');
   if (!body.phone) return showErr('電話番号を入力してください。');
   if (t !== 'bukkaku') {
-    const isCal = t === 'attend' || t === 'viewing';
+    const isCal = t === 'attend' || t === 'viewing' || t === 'visit';
     const requestOnly = isCal && !body.date && !!body.alt2;
     if (!body.date && !requestOnly) return showErr(isCal
       ? '日にちと時間を選ぶか、「ほかのご希望日時」の第2希望を書いてください。' : '日にちを選んでください。');
     if (slotted && !requestOnly && !body.slot) return showErr('時間を選んでください。');
     if (requestOnly) { body.date = ''; body.slot = ''; }
+    if (t === 'visit' && !body.store) return showErr('ご来店の店舗を選んでください。');
     if ((t === 'land' || t === 'ground') && !body.time) return showErr('時刻を選んでください。');
     if (t === 'ground' && !body.duration) return showErr('所要時間を選んでください。');
     if (isCustomer && !body.email) return showErr('確定のご連絡のため、メールアドレスを入力してください。');
@@ -752,7 +786,8 @@ function doneReserve(res, body){
   const dl = document.createElement('dl');
   row(dl, '受付番号', res.id);
   row(dl, '物件', state.info.property.name);
-  row(dl, 'ご予約内容', state.type === 'viewing' ? '物件見学' : TYPE[state.type].title);
+  row(dl, 'ご予約内容', state.type === 'viewing' ? '物件見学' : state.type === 'visit' ? 'ご来店相談' : TYPE[state.type].title);
+  if (state.type === 'visit') row(dl, 'ご来店店舗', body.store + (body.alsoView ? '（ご来店後に物件見学をご希望）' : ''));
   if (body.date) row(dl, '日時', (d ? d.label : '') + ' ' + (res.timeText || ''));
   else { row(dl, '第2希望', body.alt2); row(dl, '第3希望', body.alt3); }
   if (body.duration) row(dl, '所要時間', body.duration);
