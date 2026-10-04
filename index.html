@@ -35,6 +35,7 @@
   .chip.open{background:var(--ok-soft);color:var(--ok)}
   .chip.stop{background:var(--ng-soft);color:var(--ng)}
   .chip.second{background:var(--orange-soft);color:var(--orange-deep)}
+  .busy{white-space:pre-wrap;background:var(--orange-soft);border-radius:10px;padding:14px 16px;margin:0 0 12px;font-size:16px;line-height:1.75}
   .agree{display:block;background:var(--paper);border:3px solid var(--orange);border-radius:12px;padding:14px 16px;margin:0 0 20px;font-weight:700;cursor:pointer;line-height:1.6}
   .agree input{width:24px;height:24px;vertical-align:-5px;margin-right:10px;accent-color:var(--orange)}
 
@@ -169,7 +170,8 @@
     <h2 id="form-title"></h2>
     <div id="form-notice" class="notice hide"></div>
     <form id="form" novalidate>
-      <label class="agree hide" id="second-wrap"><input type="checkbox" id="second-ok">申込が入っており、<u>二番手でのご案内</u>となることを了承します</label>
+      <div class="busy hide" id="busy-text"></div>
+      <label class="agree hide" id="second-wrap"><input type="checkbox" id="second-ok">上記の内容を確認しました</label>
       <fieldset id="fs-day" class="hide">
         <legend>日にち</legend>
         <div class="days" id="days"></div>
@@ -192,7 +194,8 @@
       <p class="chosen hide" id="chosen"></p>
 
       <fieldset id="fs-alt" class="hide">
-        <legend>ご都合が合わない場合の候補 <span class="opt" style="font-weight:500;color:var(--sub);font-size:15px">任意</span></legend>
+        <legend><span id="alt-legend">ご都合が合わない場合の候補</span> <span class="opt" style="font-weight:500;color:var(--sub);font-size:15px">任意</span></legend>
+        <p class="lead hide" id="alt-hint" style="font-size:16px;margin:0 0 6px">空いている時間が合わない場合は、上の日時を選ばずに、こちらにご希望を書いてお申し込みいただけます。担当者から日程のご連絡をいたします。</p>
         <label class="f" for="alt2">第2希望</label>
         <input type="text" id="alt2" placeholder="例：10月15日 14時ごろ">
         <label class="f" for="alt3">第3希望</label>
@@ -219,14 +222,32 @@
 
       <fieldset id="fs-customer" class="hide">
         <legend>ご購入について</legend>
+        <label class="f">購入資金<span class="opt">任意</span></label>
         <div class="radios">
-          <label><input type="radio" name="loan" value="現金で購入">現金で購入</label>
-          <label><input type="radio" name="loan" value="住宅ローンの事前審査済み">住宅ローンの事前審査済み</label>
-          <label><input type="radio" name="loan" value="住宅ローンの事前審査を受けたい">住宅ローンの事前審査を受けたい</label>
-          <label><input type="radio" name="loan" value="未定">未定</label>
+          <label><input type="radio" name="fund" value="住宅ローン利用予定">住宅ローン利用予定</label>
+          <label><input type="radio" name="fund" value="現金購入予定">現金購入予定</label>
+          <label><input type="radio" name="fund" value="未定">未定</label>
         </div>
-        <label class="f" for="people">ご見学の人数<span class="opt">任意</span></label>
-        <select id="people"><option value="">選んでください</option><option>1名</option><option>2名</option><option>3名</option><option>4名以上</option></select>
+        <div id="pre-wrap" class="hide">
+          <label class="f">住宅ローンの事前審査</label>
+          <div class="radios">
+            <label><input type="radio" name="pre" value="事前審査済み">事前審査済み</label>
+            <label><input type="radio" name="pre" value="事前審査未実施">事前審査未実施</label>
+            <label><input type="radio" name="pre" value="住宅ローンについて話を聞きたい">住宅ローンについて話を聞きたい</label>
+          </div>
+        </div>
+        <label class="f">ご相談したいこと<span class="opt">任意・いくつでも</span></label>
+        <div class="radios">
+          <label><input type="checkbox" name="consult" value="住宅ローンについて相談したい">住宅ローンについて相談したい</label>
+          <label><input type="checkbox" name="consult" value="住宅ローンの事前審査を受けたい">住宅ローンの事前審査を受けたい</label>
+          <label><input type="checkbox" name="consult" value="他の物件も紹介してほしい">他の物件も紹介してほしい</label>
+          <label><input type="checkbox" name="consult" value="リフォーム・リノベーションについて相談したい">リフォーム・リノベーションについて相談したい</label>
+        </div>
+        <label class="f">ご見学の人数<span class="opt">任意</span></label>
+        <div style="display:flex;gap:10px">
+          <label style="flex:1">大人<select id="adults"><option value="">―</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5以上</option></select></label>
+          <label style="flex:1">お子様<select id="kids"><option value="">―</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4以上</option></select></label>
+        </div>
       </fieldset>
 
       <label class="f" for="note">ご連絡事項<span class="opt">任意</span></label>
@@ -257,7 +278,7 @@
 
 <script>
 /* ▼ GASを公開したときに表示されるURLに書き換えてください */
-const GAS_URL = 'const GAS_URL = 'https://script.google.com/macros/s/AKfycbyj1rgagQQujF9FR4R9AWRYc5JATehBsdq3Wls2cz9Lb3CB3eqXBeuzZjGp6986ASS4/exec';';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbyj1rgagQQujF9FR4R9AWRYc5JATehBsdq3Wls2cz9Lb3CB3eqXBeuzZjGp6986ASS4/exec';
 
 const TYPE = {
   bukkaku:  { title:'物件確認（物確）', desc:'募集状況をその場でお知らせします' },
@@ -277,23 +298,50 @@ function show(id){
   window.scrollTo({ top: 0 });
 }
 
+const BUSY_MSG = 'ただいま混み合っています。少し時間をおいて、もう一度お試しください。';
+const wait = ms => new Promise(r => setTimeout(r, ms));
+
+/* 読み込み：うまくいかなければ自動で2回まで読み込み直す */
 async function api(params){
   const url = GAS_URL + '?' + new URLSearchParams(params).toString();
-  const res = await fetch(url);
-  const data = await res.json();
+  let data = null;
+  for (let i = 0; i < 3 && !data; i++) {
+    try {
+      const res = await fetch(url);
+      data = JSON.parse(await res.text());
+    } catch (e) {
+      data = null;
+      if (i < 2) await wait(1500 * (i + 1));
+    }
+  }
+  if (!data) throw new Error(BUSY_MSG);
   if (!data.ok) throw new Error(data.error || '読み込みに失敗しました。');
   return data;
 }
 
+/* 送信：二重の予約を防ぐため、自動では送り直さない */
 async function post(body){
-  const res = await fetch(GAS_URL, { method:'POST', body: JSON.stringify(body) });
-  const data = await res.json();
+  let data = null;
+  try {
+    const res = await fetch(GAS_URL, { method:'POST', body: JSON.stringify(body) });
+    data = JSON.parse(await res.text());
+  } catch (e) {
+    throw new Error('送信の結果を確認できませんでした。受付のメールが届いていない場合は、少し時間をおいてもう一度お試しください。');
+  }
   if (!data.ok) throw new Error(data.error || '送信に失敗しました。');
   return data;
 }
 
 function fatal(msg){
   $('loading').classList.add('hide');
+  if (msg === BUSY_MSG) {
+    $('fatal').innerHTML = '';
+    const t = document.createElement('div'); t.textContent = msg;
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'go'; b.textContent = 'もう一度読み込む';
+    b.onclick = () => location.reload();
+    $('fatal').append(t, b); $('fatal').classList.remove('hide');
+    return;
+  }
   $('fatal').textContent = msg;
   $('fatal').classList.remove('hide');
 }
@@ -314,8 +362,7 @@ function fatal(msg){
   const A = p.status.agent, C = p.status.customer;
   let chipText = 'ご案内できます', chipCls = 'open';
   if (!A.accepting && !C.accepting) { chipText = 'ご案内を停止しています'; chipCls = 'stop'; }
-  else if (!A.accepting) { chipText = '一般のお客様のご見学のみ受付中'; chipCls = 'second'; }
-  else if (A.secondary || (C.accepting && C.secondary)) { chipText = '二番手でご案内できます'; chipCls = 'second'; }
+  else if (!A.accepting || A.secondary || (C.accepting && C.secondary)) { chipText = 'お問い合わせ多数'; chipCls = 'second'; }
   chip.textContent = chipText;
   chip.className = 'chip ' + chipCls;
   document.title = p.name + '｜ViVi不動産';
@@ -356,7 +403,7 @@ function renderList(){
       pr.append(p.price.toLocaleString('ja-JP')); const sm = document.createElement('small'); sm.textContent = '万円'; pr.appendChild(sm); r1.appendChild(pr); }
     const st = document.createElement('span');
     st.className = 'st ' + (p.secondary || !p.agent ? 'second' : 'open');
-    st.textContent = !p.agent ? '一般のお客様のみ' : (p.secondary ? '二番手でご案内可' : 'ご案内できます');
+    st.textContent = (!p.agent || p.secondary) ? 'お問い合わせ多数' : 'ご案内できます';
     r1.appendChild(st);
     const nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = p.name;
     const ar = document.createElement('span'); ar.className = 'ar'; ar.textContent = p.area;
@@ -403,7 +450,8 @@ function buildMenu(){
   });
   if (!state.info.property.status.agent.accepting) {
     const n = document.createElement('p'); n.className = 'notice';
-    n.textContent = '業者様のご案内は現在停止しています。物件確認のみご利用いただけます。';
+    n.textContent = '現在お申込みが入っております。ご案内については担当者までお問い合わせください。' +
+      (state.info.contact.phone ? '（TEL ' + state.info.contact.phone + '）' : '');
     box.appendChild(n);
   }
 }
@@ -427,8 +475,9 @@ function openType(t){
   $('fs-slot').classList.add('hide');
   $('fs-time').classList.add('hide');
   $('chosen').classList.add('hide');
-  $('fs-alt').classList.toggle('hide', !(t === 'land' || t === 'ground' ||
-    (isCal && (p.occupancy === '居住中' || p.otherCompany))));
+  $('fs-alt').classList.toggle('hide', !(t === 'land' || t === 'ground' || isCal));
+  $('alt-legend').textContent = isCal ? 'ほかのご希望日時' : 'ご都合が合わない場合の候補';
+  $('alt-hint').classList.toggle('hide', !isCal);
   $('duration').classList.toggle('hide', t !== 'ground');
   $('duration-label').classList.toggle('hide', t !== 'ground');
 
@@ -454,11 +503,8 @@ function openType(t){
   const second = t !== 'bukkaku' && p.status[state.who].secondary;
   $('second-wrap').classList.toggle('hide', !second);
   $('second-ok').checked = false;
-  if (second) {
-    notice.innerHTML = '<strong>申込が入っています。</strong>一番手の方がキャンセルされた場合に備えて、二番手としてご案内いたします。' +
-      (notice.classList.contains('hide') ? '' : '<br>' + notice.innerHTML);
-    notice.classList.remove('hide');
-  }
+  $('busy-text').classList.toggle('hide', !second);
+  if (second) $('busy-text').textContent = state.info.busyTexts[state.who === 'agent' ? 'agent' : 'customer'];
   $('submit').textContent = t === 'bukkaku' ? '募集状況を確認する' : '仮予約を送信する';
   show('s-form');
   if (usesDay) loadDays();
@@ -516,6 +562,14 @@ async function loadDays(){
 }
 
 function pickDay(d, btn){
+  /* 選んでいる日をもう一度押すと解除 */
+  if (state.date === d.date) {
+    state.date = ''; state.slot = ''; state.slotText = '';
+    document.querySelectorAll('#days .tile').forEach(x => x.setAttribute('aria-pressed', 'false'));
+    $('slots').innerHTML = ''; $('fs-slot').classList.add('hide'); $('fs-time').classList.add('hide');
+    updateChosen();
+    return;
+  }
   state.date = d.date; state.slot = ''; state.slotText = '';
   document.querySelectorAll('#days .tile').forEach(x => x.setAttribute('aria-pressed', x === btn ? 'true' : 'false'));
   if (['key_store', 'key_box', 'attend', 'viewing'].indexOf(state.type) !== -1) {
@@ -528,8 +582,13 @@ function pickDay(d, btn){
       if (state.type === 'key_store') { const sm = document.createElement('small'); sm.textContent = s.time; b.appendChild(sm); }
       if (!s.available) { const sm = document.createElement('small'); sm.textContent = '予約済み'; b.appendChild(sm); }
       b.onclick = () => {
-        state.slot = s.id; state.slotText = (state.type === 'key_store' ? s.label + ' ' : '') + s.time;
-        box.querySelectorAll('.tile').forEach(x => x.setAttribute('aria-pressed', x === b ? 'true' : 'false'));
+        if (state.slot === s.id) {               /* 同じ時間をもう一度押すと解除 */
+          state.slot = ''; state.slotText = '';
+          b.setAttribute('aria-pressed', 'false');
+        } else {
+          state.slot = s.id; state.slotText = (state.type === 'key_store' ? s.label + ' ' : '') + s.time;
+          box.querySelectorAll('.tile').forEach(x => x.setAttribute('aria-pressed', x === b ? 'true' : 'false'));
+        }
         updateChosen();
       };
       box.appendChild(b);
@@ -586,20 +645,24 @@ $('form').addEventListener('submit', async ev => {
     email: v('email'), fax: isCustomer ? '' : v('fax'), note: v('note'),
     date: state.date, slot: state.slot, time: v('time'), duration: v('duration'),
     alt2: v('alt2'), alt3: v('alt3'),
-    loan: (document.querySelector('input[name=loan]:checked') || {}).value || '',
-    people: v('people'),
+    loan: loanText(),
+    people: peopleText(),
     secondOk: $('second-ok').checked
   };
   if (t !== 'bukkaku' && state.info.property.status[state.who].secondary && !body.secondOk) {
-    return showErr('二番手でのご案内となることを了承のうえ、チェックを入れてください。');
+    return showErr('上記の内容をご確認のうえ、チェックを入れてください。');
   }
 
   if (!isCustomer && !body.company) return showErr('会社名を入力してください。');
   if (!body.name) return showErr('お名前を入力してください。');
   if (!body.phone) return showErr('電話番号を入力してください。');
   if (t !== 'bukkaku') {
-    if (!body.date) return showErr('日にちを選んでください。');
-    if (slotted && !body.slot) return showErr('時間を選んでください。');
+    const isCal = t === 'attend' || t === 'viewing';
+    const requestOnly = isCal && !body.date && !!body.alt2;
+    if (!body.date && !requestOnly) return showErr(isCal
+      ? '日にちと時間を選ぶか、「ほかのご希望日時」の第2希望を書いてください。' : '日にちを選んでください。');
+    if (slotted && !requestOnly && !body.slot) return showErr('時間を選んでください。');
+    if (requestOnly) { body.date = ''; body.slot = ''; }
     if ((t === 'land' || t === 'ground') && !body.time) return showErr('時刻を選んでください。');
     if (t === 'ground' && !body.duration) return showErr('所要時間を選んでください。');
     if (isCustomer && !body.email) return showErr('確定のご連絡のため、メールアドレスを入力してください。');
@@ -633,6 +696,25 @@ function showTimerexStep(url, email){
   show('s-timerex');
 }
 
+function loanText(){
+  const fund = (document.querySelector('input[name=fund]:checked') || {}).value || '';
+  const pre = (document.querySelector('input[name=pre]:checked') || {}).value || '';
+  const consult = Array.from(document.querySelectorAll('input[name=consult]:checked')).map(x => x.value);
+  const parts = [];
+  if (fund) parts.push('購入資金：' + fund + (fund === '住宅ローン利用予定' && pre ? '（' + pre + '）' : ''));
+  if (consult.length) parts.push('ご相談：' + consult.join('、'));
+  return parts.join('／');
+}
+function peopleText(){
+  const a = $('adults').value, k = $('kids').value;
+  if (!a && !k) return '';
+  return '大人' + (a || '―') + '名・お子様' + (k || '0') + '名';
+}
+document.querySelectorAll('input[name=fund]').forEach(r => r.addEventListener('change', () => {
+  const v = (document.querySelector('input[name=fund]:checked') || {}).value;
+  $('pre-wrap').classList.toggle('hide', v !== '住宅ローン利用予定');
+}));
+
 function row(dl, k, val){
   if (!val) return;
   const dt = document.createElement('dt'); dt.textContent = k;
@@ -664,8 +746,9 @@ function doneReserve(res, body){
   const dl = document.createElement('dl');
   row(dl, '受付番号', res.id);
   row(dl, '物件', state.info.property.name);
-  row(dl, 'ご予約', TYPE[state.type].title);
-  row(dl, '日時', (d ? d.label : '') + ' ' + (res.timeText || ''));
+  row(dl, 'ご予約内容', state.type === 'viewing' ? '物件見学' : TYPE[state.type].title);
+  if (body.date) row(dl, '日時', (d ? d.label : '') + ' ' + (res.timeText || ''));
+  else { row(dl, '第2希望', body.alt2); row(dl, '第3希望', body.alt3); }
   if (body.duration) row(dl, '所要時間', body.duration);
   box.append(h, m, dl);
   show('s-done');
