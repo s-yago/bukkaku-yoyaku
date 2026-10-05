@@ -94,6 +94,14 @@
   .promo{background:#FCEBDC;border-radius:12px;padding:14px 16px;margin:4px 0 14px;font-size:16px;line-height:1.75}
   .promo strong{display:block;font-size:18px;color:var(--orange-deep);margin-bottom:4px}
   .promo a{display:inline-block;margin-top:8px;font-weight:900;font-size:18px;color:var(--orange-deep)}
+  .evcard{background:#fff;border:2px solid var(--orange);border-radius:12px;overflow:hidden;margin:10px 0 4px}
+  .evcard img{display:block;width:100%;max-height:420px;object-fit:contain;background:#fff}
+  .evcard .in{padding:12px 14px}
+  .evcard .et{font-weight:900;font-size:18px;color:var(--navy-ink);line-height:1.5}
+  .evcard .ed{font-size:15px;color:var(--sub);margin-top:4px}
+  .evcard .go{margin-top:10px}
+  .evcard .more{display:block;margin-top:8px;font-size:15px;color:var(--sub)}
+  .tile .ev{display:block;font-size:13px;color:var(--orange-deep);font-weight:900}
   /* 物件一覧 */
   .search{width:100%;font:inherit;font-size:19px;padding:13px 14px;border:2px solid var(--line);border-radius:12px;background:#fff;margin:4px 0 10px}
   .kinds{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
@@ -181,6 +189,7 @@
         <legend>ご来店について</legend>
         <div class="busy" style="background:#FCEBDC;white-space:normal"><strong style="font-size:18px">🏠 </strong><span id="visit-hook" style="white-space:pre-wrap;font-weight:700"></span><br>
           <a id="visit-event" href="#" target="_blank" rel="noopener" style="display:inline-block;margin-top:8px;font-weight:900;font-size:18px;color:#B8601A">👉 今月のイベントはこちら</a>
+          <div id="visit-evcard"></div>
         </div>
         <label class="f">ご来店の店舗</label>
         <div class="radios">
@@ -487,9 +496,14 @@ function buildMenu(){
       const head = document.createElement('strong'); head.textContent = '失敗しない不動産購入をしたい方は、まずはご来店ください！';
       const body = document.createElement('span');
       body.textContent = 'ご来店いただくと特典多数！資金計画やリノベーションのご相談、条件に合う物件のご紹介も、まとめてできます。';
-      const link = document.createElement('a'); link.href = state.info.visit.eventUrl; link.target = '_blank'; link.rel = 'noopener';
-      link.textContent = '👉 今月のイベントはこちら';
-      promo.append(head, body, document.createElement('br'), link);
+      promo.append(head, body);
+      const card = eventCard(true);
+      if (card) promo.appendChild(card);
+      else {
+        const link = document.createElement('a'); link.href = state.info.visit.eventUrl; link.target = '_blank'; link.rel = 'noopener';
+        link.textContent = '👉 今月のイベントはこちら';
+        promo.append(document.createElement('br'), link);
+      }
       box.appendChild(promo);
     }
   });
@@ -526,6 +540,10 @@ function openType(t){
   if (t === 'visit') {
     $('visit-hook').textContent = state.info.visit.hook;
     $('visit-event').href = state.info.visit.eventUrl;
+    const holder = $('visit-evcard'); holder.innerHTML = '';
+    const card = eventCard(false);
+    if (card) { holder.appendChild(card); $('visit-event').classList.add('hide'); }
+    else $('visit-event').classList.remove('hide');
   }
 
   $('form-title').textContent = TYPE[t].title;
@@ -624,6 +642,9 @@ async function loadDays(){
       b.type = 'button'; b.className = 'tile'; b.setAttribute('aria-pressed','false');
       b.textContent = d.label;
       if (d.isToday) { const s = document.createElement('small'); s.textContent = '今日'; b.appendChild(s); }
+      if (state.type === 'visit' && EVENT_DATES().indexOf(d.date) !== -1) {   /* イベント開催日に印 */
+        const ev = document.createElement('span'); ev.className = 'ev'; ev.textContent = '🎉イベント'; b.appendChild(ev);
+      }
       b.onclick = () => pickDay(d, b);
       box.appendChild(b);
     });
@@ -678,6 +699,35 @@ function pickDay(d, btn){
     $('fs-time').classList.remove('hide');
   }
   updateChosen();
+}
+
+/* 今月のイベントのカード（ホームページから自動で読み取ったもの） */
+const EVENT_DATES = () => (state.info.visit && state.info.visit.event && state.info.visit.event.dates) || [];
+function mdw(ymd){
+  const d = new Date(ymd.replace(/-/g, '/'));
+  return (d.getMonth() + 1) + '/' + d.getDate() + '（' + '日月火水木金土'[d.getDay()] + '）';
+}
+function eventCard(withButton){
+  const ev = state.info.visit && state.info.visit.event;
+  if (!ev || !ev.title) return null;
+  const today = new Date(); const t0 = today.getFullYear() + '-' + ('0' + (today.getMonth() + 1)).slice(-2) + '-' + ('0' + today.getDate()).slice(-2);
+  const upcoming = ev.dates.filter(d => d >= t0);
+  const card = document.createElement('div'); card.className = 'evcard';
+  if (ev.image) { const im = document.createElement('img'); im.src = ev.image; im.alt = ev.title; im.loading = 'lazy'; im.onerror = () => im.remove(); card.appendChild(im); }
+  const inner = document.createElement('div'); inner.className = 'in';
+  const tt = document.createElement('div'); tt.className = 'et'; tt.textContent = '🎉 ' + ev.title;
+  const dd = document.createElement('div'); dd.className = 'ed'; dd.textContent = '開催日：' + upcoming.map(mdw).join('・');
+  inner.append(tt, dd);
+  if (withButton) {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'go'; b.textContent = 'このイベントに来店予約する';
+    b.onclick = () => openType('visit');
+    inner.appendChild(b);
+  }
+  const more = document.createElement('a'); more.className = 'more'; more.href = ev.url || state.info.visit.eventUrl; more.target = '_blank'; more.rel = 'noopener';
+  more.textContent = 'イベントの詳細を見る（ご予約はこの画面からどうぞ）';
+  inner.appendChild(more);
+  card.appendChild(inner);
+  return card;
 }
 
 /* 鍵の貸出：返却日時の入力と、先行予約の案内 */
