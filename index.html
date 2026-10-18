@@ -73,6 +73,15 @@
   .radios input{width:22px;height:22px;vertical-align:-4px;margin-right:10px;accent-color:var(--orange)}
   .radios label:has(input:checked){border-color:var(--orange);background:var(--orange-soft)}
 
+  /* 必須・任意の印 */
+  .req,.optb{display:inline-block;font-size:15px;font-weight:900;border-radius:6px;padding:0 9px;
+    margin-left:8px;vertical-align:2px;line-height:1.7;letter-spacing:.02em}
+  .req{background:var(--ng);color:#fff}
+  .optb{background:#E4E8EF;color:var(--sub);font-weight:700}
+  .req-guide{background:var(--paper);border-radius:10px;padding:10px 14px;margin:0 0 18px;font-size:16px;font-weight:700}
+  .req-guide .req,.req-guide .optb{margin:0 4px 0 0}
+  .day-note{display:block;font-size:15px;font-weight:500;color:var(--sub);margin-top:2px}
+
   .notice{background:var(--orange-soft);border-radius:10px;padding:14px 16px;margin:0 0 18px;font-weight:500}
   .notice strong{color:var(--orange-deep)}
 
@@ -182,35 +191,36 @@
     <button class="back" type="button" id="form-back">← 戻る</button>
     <h2 id="form-title"></h2>
     <div id="form-notice" class="notice hide"></div>
+    <p class="req-guide"><span class="req">必須</span>の項目は必ずご入力ください。<span class="optb">任意</span>の項目は空欄でも送れます。</p>
     <form id="form" novalidate>
       <div class="busy hide" id="busy-text"></div>
-      <label class="agree hide" id="second-wrap"><input type="checkbox" id="second-ok">上記の内容を確認しました</label>
+      <label class="agree hide" id="second-wrap"><input type="checkbox" id="second-ok">上記の内容を確認しました<span class="req">必須</span></label>
       <fieldset id="fs-visit" class="hide">
         <legend>ご来店について</legend>
         <div class="busy" style="background:#FCEBDC;white-space:normal"><strong style="font-size:18px">🏠 </strong><span id="visit-hook" style="white-space:pre-wrap;font-weight:700"></span><br>
           <a id="visit-event" href="#" target="_blank" rel="noopener" style="display:inline-block;margin-top:8px;font-weight:900;font-size:18px;color:#B8601A">👉 今月のイベントはこちら</a>
           <div id="visit-evcard"></div>
         </div>
-        <label class="f">ご来店の店舗</label>
+        <label class="f">ご来店の店舗<span class="req">必須</span></label>
         <div class="radios">
           <label><input type="radio" name="store" value="天正寺本店">天正寺本店</label>
           <label><input type="radio" name="store" value="総曲輪店">総曲輪店（市民プラザ前）</label>
         </div>
-        <label class="agree" style="margin-top:12px"><input type="checkbox" id="also-view">ご来店のあと、この物件も見学したい</label>
+        <label class="agree" style="margin-top:12px"><input type="checkbox" id="also-view">ご来店のあと、この物件も見学したい<span class="optb">任意</span></label>
       </fieldset>
 
       <fieldset id="fs-day" class="hide">
-        <legend>日にち</legend>
+        <legend>日にち<span class="req">必須</span><span class="day-note hide" id="day-note">空いている日時が合わない場合は、下の「ほかのご希望日時」に書いていただいても大丈夫です</span></legend>
         <div class="days" id="days"></div>
       </fieldset>
       <fieldset id="fs-slot" class="hide">
-        <legend id="slot-legend">時間</legend>
+        <legend><span id="slot-legend">時間</span><span class="req">必須</span></legend>
         <div class="slots" id="slots"></div>
       </fieldset>
       <fieldset id="fs-return" class="hide">
-        <legend>鍵の返却予定</legend>
+        <legend>鍵の返却予定<span class="req">必須</span></legend>
         <div class="busy hide" id="key-partial"></div>
-        <label class="agree hide" id="key-ok-wrap"><input type="checkbox" id="key-ok">上記の内容を確認しました</label>
+        <label class="agree hide" id="key-ok-wrap"><input type="checkbox" id="key-ok">上記の内容を確認しました<span class="req">必須</span></label>
         <p class="lead hide" id="key-returnby" style="font-size:16px;color:#B3362B;font-weight:700"></p>
         <div style="display:flex;gap:10px">
           <label style="flex:1">返却日<input type="date" id="ret-date" style="width:100%;font:inherit;font-size:18px;padding:10px;border:2px solid var(--line);border-radius:10px;background:#fff"></label>
@@ -218,9 +228,9 @@
         </div>
       </fieldset>
       <fieldset id="fs-time" class="hide">
-        <legend>時刻</legend>
+        <legend>時刻<span class="req">必須</span></legend>
         <select id="time"></select>
-        <label class="f hide" for="duration" id="duration-label">所要時間</label>
+        <label class="f hide" for="duration" id="duration-label">所要時間<span class="req">必須</span></label>
         <select id="duration" class="hide">
           <option value="">選んでください</option>
           <option>1時間</option>
@@ -231,7 +241,7 @@
       <p class="chosen hide" id="chosen"></p>
 
       <fieldset id="fs-alt" class="hide">
-        <legend><span id="alt-legend">ご都合が合わない場合の候補</span> <span class="opt" style="font-weight:500;color:var(--sub);font-size:15px">任意</span></legend>
+        <legend><span id="alt-legend">ご都合が合わない場合の候補</span><span class="optb">任意</span></legend>
         <p class="lead hide" id="alt-hint" style="font-size:16px;margin:0 0 6px">空いている時間が合わない場合は、上の日時を選ばずに、こちらにご希望を書いてお申し込みいただけます。担当者から日程のご連絡をいたします。</p>
         <label class="f" for="alt2">第2希望</label>
         <input type="text" id="alt2" placeholder="例：10月15日 14時ごろ">
@@ -242,52 +252,52 @@
       <fieldset>
         <legend>ご連絡先</legend>
         <div id="company-wrap">
-          <label class="f" for="company">会社名</label>
+          <label class="f" for="company">会社名<span class="req">必須</span></label>
           <input type="text" id="company" autocomplete="organization">
         </div>
-        <label class="f" for="name">お名前</label>
+        <label class="f" for="name">お名前<span class="req">必須</span></label>
         <input type="text" id="name" autocomplete="name">
-        <label class="f" for="phone">電話番号</label>
+        <label class="f" for="phone">電話番号<span class="req">必須</span></label>
         <input type="tel" id="phone" autocomplete="tel" inputmode="tel">
-        <label class="f" for="email">メールアドレス<span class="opt" id="email-opt">確定のご連絡に使います</span></label>
+        <label class="f" for="email">メールアドレス<span class="req" id="email-req">必須</span><span class="opt" id="email-opt">確定のご連絡に使います</span></label>
         <input type="email" id="email" autocomplete="email" inputmode="email">
         <div id="fax-wrap">
-          <label class="f" for="fax">FAX番号<span class="opt">メールがない場合</span></label>
+          <label class="f" for="fax">FAX番号<span class="req" id="fax-req">メールかFAXのどちらか必須</span><span class="opt">メールがない場合</span></label>
           <input type="tel" id="fax" inputmode="tel">
         </div>
       </fieldset>
 
       <fieldset id="fs-customer" class="hide">
         <legend>ご購入について</legend>
-        <label class="f">購入資金<span class="opt">任意</span></label>
+        <label class="f">購入資金<span class="optb">任意</span></label>
         <div class="radios">
           <label><input type="radio" name="fund" value="住宅ローン利用予定">住宅ローン利用予定</label>
           <label><input type="radio" name="fund" value="現金購入予定">現金購入予定</label>
           <label><input type="radio" name="fund" value="未定">未定</label>
         </div>
         <div id="pre-wrap" class="hide">
-          <label class="f">住宅ローンの事前審査</label>
+          <label class="f">住宅ローンの事前審査<span class="optb">任意</span></label>
           <div class="radios">
             <label><input type="radio" name="pre" value="事前審査済み">事前審査済み</label>
             <label><input type="radio" name="pre" value="事前審査未実施">事前審査未実施</label>
             <label><input type="radio" name="pre" value="住宅ローンについて話を聞きたい">住宅ローンについて話を聞きたい</label>
           </div>
         </div>
-        <label class="f">ご相談したいこと<span class="opt">任意・いくつでも</span></label>
+        <label class="f">ご相談したいこと<span class="optb">任意</span><span class="opt">いくつでも</span></label>
         <div class="radios">
           <label><input type="checkbox" name="consult" value="住宅ローンについて相談したい">住宅ローンについて相談したい</label>
           <label><input type="checkbox" name="consult" value="住宅ローンの事前審査を受けたい">住宅ローンの事前審査を受けたい</label>
           <label><input type="checkbox" name="consult" value="他の物件も紹介してほしい">他の物件も紹介してほしい</label>
           <label><input type="checkbox" name="consult" value="リフォーム・リノベーションについて相談したい">リフォーム・リノベーションについて相談したい</label>
         </div>
-        <label class="f">ご見学の人数<span class="opt">任意</span></label>
+        <label class="f">ご見学の人数<span class="optb">任意</span></label>
         <div style="display:flex;gap:10px">
           <label style="flex:1">大人<select id="adults"><option value="">―</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5以上</option></select></label>
           <label style="flex:1">お子様<select id="kids"><option value="">―</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4以上</option></select></label>
         </div>
       </fieldset>
 
-      <label class="f" for="note">ご連絡事項<span class="opt">任意</span></label>
+      <label class="f" for="note">ご連絡事項<span class="optb">任意</span></label>
       <textarea id="note"></textarea>
 
       <div id="form-err" class="err hide" role="alert"></div>
@@ -553,6 +563,12 @@ function openType(t){
   $('fax-wrap').classList.toggle('hide', isCustomer);
   $('fs-customer').classList.toggle('hide', !(isCustomer && t !== 'bukkaku'));
   $('email-opt').textContent = isCustomer ? '確定のご連絡に使います' : '確定のご連絡に使います（ない場合はFAX番号を）';
+
+  /* 必須の印：メールはお客様は必須、業者さんはメールかFAXのどちらか必須（物確のときは不要） */
+  $('email-req').textContent = isCustomer ? '必須' : 'メールかFAXのどちらか必須';
+  $('email-req').classList.toggle('hide', t === 'bukkaku');
+  $('fax-req').classList.toggle('hide', t === 'bukkaku' || isCustomer);
+  $('day-note').classList.toggle('hide', !isCal);
 
   const usesDay = t !== 'bukkaku';
   $('fs-day').classList.toggle('hide', !usesDay);
