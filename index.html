@@ -421,7 +421,34 @@ function fatal(msg){
   $('who-agent').classList.toggle('hide', state.info.menus.agent.length === 0);
   $('who-customer').classList.toggle('hide', state.info.menus.customer.length === 0);
   show('s-who');
+
+  /* 再予約のURL（?id=物件&who=customer&type=viewing&re=1）から開いたときは、入力画面へ直行する */
+  const qs = new URLSearchParams(location.search);
+  const qWho = qs.get('who'), qType = qs.get('type');
+  if ((qWho === 'agent' || qWho === 'customer') && qType && state.info.menus[qWho].indexOf(qType) !== -1) {
+    state.who = qWho;
+    if (qWho === 'agent') buildMenu();
+    openType(qType);
+    if (qs.get('re')) {
+      const n = $('form-notice');
+      n.innerHTML = '<strong>日時の選び直し：</strong>前回のご希望日時ではご案内が難しかったため、お手数ですが別の日時をお選びください。<br>' + n.innerHTML;
+      n.classList.remove('hide');
+    }
+  }
 })();
+
+/* ---------- ご連絡先を覚えておく（同じスマホ・パソコンなら次回は入力済み） ---------- */
+const SAVE_KEY = 'vivi-yoyaku-contact';
+function saveContact(b){
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify({ company:b.company, name:b.name, phone:b.phone, email:b.email, fax:b.fax })); } catch (e) {}
+}
+function loadContact(){
+  try {
+    const c = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null');
+    if (!c) return;
+    ['company', 'name', 'phone', 'email', 'fax'].forEach(k => { if (c[k] && !$(k).value) $(k).value = c[k]; });
+  } catch (e) {}
+}
 
 /* ---------- 物件一覧 ---------- */
 const LIST = { all: [], kind: '' };
@@ -609,6 +636,7 @@ function openType(t){
   if (second) $('busy-text').textContent = state.info.busyTexts[state.who === 'agent' ? 'agent' : 'customer'];
   $('submit').textContent = t === 'bukkaku' ? '募集状況を確認する' : '仮予約を送信する';
   show('s-form');
+  loadContact();
   if (usesDay) loadDays();
 }
 
@@ -845,6 +873,7 @@ $('form').addEventListener('submit', async ev => {
   btn.disabled = true; btn.textContent = '送信しています…';
   try {
     const res = await post(body);
+    saveContact(body);
     if (t === 'bukkaku') doneBukkaku(res, body); else doneReserve(res, body);
   } catch (e) {
     showErr(e.message);
